@@ -1,4 +1,7 @@
+use nom::error::{Error as NomErr, ErrorKind as NomErrKind};
+
 pub mod bsp;
+pub mod map;
 pub mod texture;
 pub mod wad;
 
@@ -13,18 +16,22 @@ fn cstr16(i: &[u8]) -> nom::IResult<&[u8], &str> {
     Ok((i, cstr))
 }
 
-trait SliceExt {
-    fn off(&self, shift: u32) -> Self;
-    fn off_size(&self, shift: u32, size: u32) -> Self;
+#[inline]
+fn nom_eof() -> nom::Err<NomErr<&'static [u8]>> {
+    nom::Err::Error(NomErr::new([].as_slice(), NomErrKind::Eof))
 }
 
-impl<T> SliceExt for &'_ [T] {
-    fn off(&self, shift: u32) -> Self {
-        self.get(shift as usize..).unwrap_or(&[])
+trait SliceExt<'a, T>: Sized {
+    fn off(self, shift: usize, size: usize) -> Result<Self, nom::Err<NomErr<&'static [u8]>>>;
+    fn off_all(self, shift: usize) -> Result<Self, nom::Err<NomErr<&'static [u8]>>>;
+}
+
+impl<'a, T> SliceExt<'a, T> for &'a [T] {
+    fn off(self, shift: usize, size: usize) -> Result<Self, nom::Err<NomErr<&'static [u8]>>> {
+        self.get(shift..shift + size).ok_or_else(nom_eof)
     }
 
-    fn off_size(&self, shift: u32, size: u32) -> Self {
-        self.get(shift as usize..shift as usize + size as usize)
-            .unwrap_or(&[])
+    fn off_all(self, shift: usize) -> Result<Self, nom::Err<NomErr<&'static [u8]>>> {
+        self.get(shift..).ok_or_else(nom_eof)
     }
 }

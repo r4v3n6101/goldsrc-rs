@@ -1,9 +1,11 @@
-use crate::nom::{cstr16, SliceExt};
-use crate::repr::texture::{MipData, MipTexture};
+use crate::{
+    nom::{cstr16, SliceExt},
+    repr::texture::{MipData, MipTexture},
+};
 
-const PALETTE_SIZE: u32 = 256;
+const PALETTE_SIZE: usize = 256;
 
-pub fn miptexture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
+pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     let (i, name) = cstr16(input)?;
 
     let (i, width) = nom::number::complete::le_u32(i)?;
@@ -21,11 +23,11 @@ pub fn miptexture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
         let mip8_size = (width / 8) * (height / 8);
 
         Some(MipData {
-            mip0: input.off_size(mip0_offset, mip0_size),
-            mip2: input.off_size(mip2_offset, mip2_size),
-            mip4: input.off_size(mip4_offset, mip4_size),
-            mip8: input.off_size(mip8_offset, mip8_size),
-            palette: input.off_size(mip8_offset + mip8_size + 2, PALETTE_SIZE * 3),
+            mip0: input.off(mip0_offset as usize, mip0_size as usize)?,
+            mip2: input.off(mip2_offset as usize, mip2_size as usize)?,
+            mip4: input.off(mip4_offset as usize, mip4_size as usize)?,
+            mip8: input.off(mip8_offset as usize, mip8_size as usize)?,
+            palette: input.off((mip8_offset + mip8_size + 2) as usize, PALETTE_SIZE * 3)?,
         })
     } else {
         None
@@ -45,10 +47,10 @@ pub fn miptexture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
 #[test]
 fn parse_empty_miptex() {
     let data = b"123456789012345\0\x05\0\0\0\x05\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-    let (_, miptexture) = miptexture(data.as_slice()).expect("error parsing file");
+    let (_, mip_texture) = mip_texture(data.as_slice()).expect("error parsing file");
 
-    assert_eq!(miptexture.name, "123456789012345");
-    assert_eq!(miptexture.width, 5);
-    assert_eq!(miptexture.height, 5);
-    assert!(miptexture.data.is_none());
+    assert_eq!(mip_texture.name, "123456789012345");
+    assert_eq!(mip_texture.width, 5);
+    assert_eq!(mip_texture.height, 5);
+    assert!(mip_texture.data.is_none());
 }

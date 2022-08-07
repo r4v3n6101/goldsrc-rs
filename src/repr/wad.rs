@@ -1,7 +1,10 @@
-pub struct Entry<'a> {
-    pub data: &'a [u8],
+pub type Archive<'file> = Vec<Entry<'file>>;
+
+pub struct Entry<'file> {
     pub full_size: u32,
     pub ty: u8,
     pub compressed: bool,
-    pub name: &'a str,
+
+    pub name: &'file str,
+    pub data: &'file [u8],
 }

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
 
-pub struct Entity<'a> {
-    pub properties: HashMap<&'a str, &'a str>,
-}
+pub type Entity = HashMap<String, String>;
+pub type Entities = Vec<Entity>;
