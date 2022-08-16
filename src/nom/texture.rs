@@ -16,17 +16,22 @@ pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     let (i, mip4_offset) = nom::number::complete::le_u32(i)?;
     let (i, mip8_offset) = nom::number::complete::le_u32(i)?;
 
-    let data = if [mip0_offset, mip2_offset, mip4_offset, mip8_offset] != [0; 4] {
+    let data = if [mip0_offset, mip2_offset, mip4_offset, mip8_offset]
+        .iter()
+        .all(|&x| x != 0)
+    {
         let mip0_size = width * height;
         let mip2_size = (width / 2) * (height / 2);
         let mip4_size = (width / 4) * (height / 4);
         let mip8_size = (width / 8) * (height / 8);
 
         Some(MipData {
-            mip0: input.off(mip0_offset as usize, mip0_size as usize)?,
-            mip2: input.off(mip2_offset as usize, mip2_size as usize)?,
-            mip4: input.off(mip4_offset as usize, mip4_size as usize)?,
-            mip8: input.off(mip8_offset as usize, mip8_size as usize)?,
+            indices: [
+                input.off(mip0_offset as usize, mip0_size as usize)?,
+                input.off(mip2_offset as usize, mip2_size as usize)?,
+                input.off(mip4_offset as usize, mip4_size as usize)?,
+                input.off(mip8_offset as usize, mip8_size as usize)?,
+            ],
             palette: input.off((mip8_offset + mip8_size + 2) as usize, PALETTE_SIZE * 3)?,
         })
     } else {

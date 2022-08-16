@@ -6,8 +6,7 @@ use nom::{
 
 use crate::{
     nom::{cstr16, SliceExt},
-    repr::wad::Archive,
-    repr::wad::Entry,
+    repr::{wad::Archive, wad::Entry},
 };
 
 const MAGIC: &[u8] = b"WAD3";

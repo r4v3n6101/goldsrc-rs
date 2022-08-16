@@ -1,8 +1,7 @@
+const MIP_LEVELS: usize = 4;
+
 pub struct MipData<'a> {
-    pub mip0: &'a [u8],
-    pub mip2: &'a [u8],
-    pub mip4: &'a [u8],
-    pub mip8: &'a [u8],
+    pub indices: [&'a [u8]; MIP_LEVELS],
     pub palette: &'a [u8],
 }
 

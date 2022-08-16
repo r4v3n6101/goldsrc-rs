@@ -1,25 +1,19 @@
 use nom::{
-    combinator::map,
-    combinator::verify,
-    multi::length_count,
-    multi::many0,
-    number::complete::{le_i32, le_u16, le_u32},
-    number::complete::le_f32,
-    number::complete::le_i16,
-    number::complete::le_u8,
+    combinator::{map, verify},
+    multi::{length_count, many0},
+    number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
     sequence::tuple,
 };
 
 use crate::{
-    nom::map::tmp_entities,
-    nom::SliceExt,
-    nom::texture::mip_texture,
+    nom::{map::tmp_entities, texture::mip_texture, SliceExt},
     repr::{
-        bsp::{BBoxFloat, BBoxShort, Level, Plane, Vec3f},
+        bsp::{
+            BBoxFloat, BBoxShort, ClipNode, Face, Leaf, Level, Map, Model, Node, Plane,
+            TextureInfo, Vec3f, Vec3s,
+        },
         texture::MipTexture,
     },
-    repr::bsp::{ClipNode, Face, Leaf, Map, Model, Node, TextureInfo},
-    repr::bsp::Vec3s,
 };
 
 const BSP_VERSION: u32 = 30;
