@@ -1,5 +1,5 @@
 use nom::{
-    combinator::{map, verify},
+    combinator::verify,
     multi::{length_count, many0},
     number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
     sequence::tuple,
@@ -68,33 +68,33 @@ fn clip_node(i: &[u8]) -> nom::IResult<&[u8], ClipNode> {
     Ok((
         i,
         ClipNode {
-            plane_id: plane as usize,
-            children: [child1 as isize, child2 as isize],
+            plane_id: plane,
+            children: [child1, child2],
         },
     ))
 }
 
 fn face(i: &[u8]) -> nom::IResult<&[u8], Face> {
-    let (i, plane) = le_u16(i)?;
+    let (i, plane_id) = le_u16(i)?;
     let (i, plane_side) = le_u16(i)?;
-    let (i, surf_id) = le_u32(i)?;
-    let (i, surf_num) = le_u16(i)?;
-    let (i, texinfo_id) = le_u16(i)?;
+    let (i, first_surfedge_id) = le_u32(i)?;
+    let (i, surfedges_num) = le_u16(i)?;
+    let (i, texture_info_id) = le_u16(i)?;
     let (i, light1) = le_u8(i)?;
     let (i, light2) = le_u8(i)?;
     let (i, light3) = le_u8(i)?;
     let (i, light4) = le_u8(i)?;
-    let (i, lightmap) = le_u32(i)?;
+    let (i, lightmap_offset) = le_u32(i)?;
     Ok((
         i,
         Face {
-            plane_id: plane as usize,
-            flipped: plane_side != 0,
-            first_surfedge_id: surf_id as usize,
-            surfedges_num: surf_num as usize,
-            texture_info_id: texinfo_id as usize,
+            plane_id,
+            plane_side,
+            first_surfedge_id,
+            surfedges_num,
+            texture_info_id,
             lighting_styles: [light1, light2, light3, light4],
-            lightmap_offset: lightmap as usize,
+            lightmap_offset,
         },
     ))
 }
@@ -103,8 +103,8 @@ fn leaf(i: &[u8]) -> nom::IResult<&[u8], Leaf> {
     let (i, contents) = le_i32(i)?;
     let (i, _) = le_i32(i)?;
     let (i, bounds) = bboxs(i)?;
-    let (i, markface_id) = le_u16(i)?;
-    let (i, markface_num) = le_u16(i)?;
+    let (i, mark_surfaces_id) = le_u16(i)?;
+    let (i, mark_surfaces_num) = le_u16(i)?;
     let (i, sound1) = le_u8(i)?;
     let (i, sound2) = le_u8(i)?;
     let (i, sound3) = le_u8(i)?;
@@ -114,8 +114,8 @@ fn leaf(i: &[u8]) -> nom::IResult<&[u8], Leaf> {
         Leaf {
             contents,
             bounds,
-            mark_surfaces_id: markface_id as usize,
-            mark_surfaces_num: markface_num as usize,
+            first_mark_surface_id: mark_surfaces_id,
+            mark_surfaces_num,
             ambient_levels: [sound1, sound2, sound3, sound4],
         },
     ))
@@ -132,33 +132,33 @@ fn model(i: &[u8]) -> nom::IResult<&[u8], Model> {
 
     let (i, _) = le_u32(i)?; // TODO : ???
 
-    let (i, face_id) = le_u32(i)?;
-    let (i, face_num) = le_u32(i)?;
+    let (i, faces_id) = le_u32(i)?;
+    let (i, faces_num) = le_u32(i)?;
     Ok((
         i,
         Model {
             bounds,
             origin,
-            faces_id: face_id as usize,
-            faces_num: face_num as usize,
+            first_face_id: faces_id,
+            faces_num,
         },
     ))
 }
 
 fn node(i: &[u8]) -> nom::IResult<&[u8], Node> {
-    let (i, plane) = le_u32(i)?;
+    let (i, plane_id) = le_u32(i)?;
     let (i, child1) = le_i16(i)?;
     let (i, child2) = le_i16(i)?;
     let (i, bounds) = bboxs(i)?;
-    let (i, face_id) = le_u16(i)?;
-    let (i, face_num) = le_u16(i)?;
+    let (i, first_face_id) = le_u16(i)?;
+    let (i, faces_num) = le_u16(i)?;
     Ok((
         i,
         Node {
-            plane_id: plane as usize,
-            children: [child1 as isize, child2 as isize],
-            first_face_id: face_id as usize,
-            faces_num: face_num as usize,
+            plane_id,
+            children: [child1, child2],
+            first_face_id,
+            faces_num,
             bounds,
         },
     ))
@@ -169,7 +169,7 @@ fn texinfo(i: &[u8]) -> nom::IResult<&[u8], TextureInfo> {
     let (i, s_shift) = le_f32(i)?;
     let (i, t) = vec3f(i)?;
     let (i, t_shift) = le_f32(i)?;
-    let (i, miptex) = le_u32(i)?;
+    let (i, texture_id) = le_u32(i)?;
     let (i, flags) = le_u32(i)?;
     Ok((
         i,
@@ -178,7 +178,7 @@ fn texinfo(i: &[u8]) -> nom::IResult<&[u8], TextureInfo> {
             s_shift,
             t,
             t_shift,
-            texture_id: miptex as usize,
+            texture_id,
             flags,
         },
     ))
@@ -209,15 +209,9 @@ pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
     let (i, lighting) = lump(i, file, |x| Ok((&[], x)))?;
     let (i, clip_nodes) = lump(i, file, many0(clip_node))?;
     let (i, leaves) = lump(i, file, many0(leaf))?;
-    let (i, mark_surfaces) = lump(i, file, many0(map(le_u16, |x| x as usize)))?;
-    let (i, edges) = lump(
-        i,
-        file,
-        many0(map(tuple((le_u16, le_u16)), |(a, b)| {
-            (a as usize, b as usize)
-        })),
-    )?;
-    let (i, surfedges) = lump(i, file, many0(map(le_i32, |x| x as isize)))?;
+    let (i, mark_surfaces) = lump(i, file, many0(le_u16))?;
+    let (i, edges) = lump(i, file, many0(tuple((le_u16, le_u16))))?;
+    let (i, surfedges) = lump(i, file, many0(le_i32))?;
     let (_, models) = lump(i, file, many0(model))?;
     Ok((
         &[],
