@@ -5,13 +5,13 @@ use nom::{
 };
 
 use crate::{
-    nom::{cstr16, SliceExt},
-    repr::{wad::Archive, wad::Entry},
+    nom::{cstr16, texture::mip_texture, SliceExt},
+    repr::{wad::Archive, wad::Content},
 };
 
 const MAGIC: &[u8] = b"WAD3";
 
-fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], Entry<'a>> {
+fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (&'a str, Content<'a>)> {
     let (i, offset) = le_u32(i)?;
     let (i, size) = le_u32(i)?;
     let (i, full_size) = le_u32(i)?;
@@ -19,17 +19,18 @@ fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], Entry<'a>> {
     let (i, comp) = le_u8(i)?;
     let (i, _) = le_u16(i)?;
     let (i, name) = cstr16(i)?;
+    let data = file.off(offset as usize, size as usize)?;
 
-    Ok((
-        i,
-        Entry {
-            full_size,
-            ty,
-            name,
-            compressed: comp != 0,
-            data: file.off(offset as usize, size as usize)?,
-        },
-    ))
+    if comp != 0 {
+        unimplemented!("Decompression not supported");
+    }
+
+    let content = match ty {
+        0x43 => Content::MipTexture(mip_texture(data)?.1),
+        _ => Content::Other(data),
+    };
+
+    Ok((i, (name, content)))
 }
 
 pub fn archive(file: &[u8]) -> nom::IResult<&[u8], Archive> {
@@ -37,13 +38,19 @@ pub fn archive(file: &[u8]) -> nom::IResult<&[u8], Archive> {
     let (i, size) = le_u32(i)?;
     let (_, offset) = le_u32(i)?;
     let entry_data = file.off_all(offset as usize)?;
-    count(|i| entry(i, file), size as usize)(entry_data)
+    Ok((
+        &[],
+        count(|i| entry(i, file), size as usize)(entry_data)?
+            .1
+            .into_iter()
+            .collect(),
+    ))
 }
 
 #[test]
 fn parse_wad() {
     let data = std::fs::read("test.wad").expect("error reading file");
-    let (_, entries) = archive(&data).expect("error parsing file");
+    let (_, archive) = archive(&data).expect("error parsing file");
 
-    entries.iter().for_each(|e| println!("{}", e.name));
+    archive.iter().for_each(|(&name, _)| println!("{}", name));
 }

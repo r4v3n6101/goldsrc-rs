@@ -1,10 +1,11 @@
-pub type Archive<'file> = Vec<Entry<'file>>;
+use crate::repr::texture::MipTexture;
+use std::collections::HashMap;
 
-pub struct Entry<'file> {
-    pub full_size: u32,
-    pub ty: u8,
-    pub compressed: bool,
+pub type Archive<'file> = HashMap<&'file str, Content<'file>>;
 
-    pub name: &'file str,
-    pub data: &'file [u8],
+pub enum Content<'file> {
+    // Compressed(Content<'file>),
+    // Font(..),
+    MipTexture(MipTexture<'file>),
+    Other(&'file [u8]),
 }
