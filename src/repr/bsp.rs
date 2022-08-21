@@ -1,9 +1,18 @@
 use crate::{repr::map::Entities, repr::texture::MipTexture};
 
+assert_eq_size!(Vec3s, [u8; 6]);
 pub type Vec3s = [i16; 3];
+
+assert_eq_size!(Vec3f, [u8; 12]);
 pub type Vec3f = [f32; 3];
+
+assert_eq_size!(Edge, [u8; 4]);
 pub type Edge = (u16, u16);
+
+assert_eq_size!(BBoxShort, [Vec3s; 2]);
 pub type BBoxShort = BBox<Vec3s>;
+
+assert_eq_size!(BBoxFloat, [Vec3f; 2]);
 pub type BBoxFloat = BBox<Vec3f>;
 
 pub struct BBox<T> {
@@ -11,12 +20,14 @@ pub struct BBox<T> {
     pub max: T,
 }
 
+assert_eq_size!(Plane, [u8; 20]);
 pub struct Plane {
     pub normal: Vec3f,
     pub distance: f32,
     pub ty: u32,
 }
 
+assert_eq_size!(Node, [u8; 24]);
 pub struct Node {
     pub plane_id: u32,
     pub children: [i16; 2],
@@ -25,6 +36,7 @@ pub struct Node {
     pub faces_num: u16,
 }
 
+assert_eq_size!(TextureInfo, [u8; 40]);
 pub struct TextureInfo {
     pub s: Vec3f,
     pub s_shift: f32,
@@ -34,6 +46,7 @@ pub struct TextureInfo {
     pub flags: u32,
 }
 
+assert_eq_size!(Face, [u8; 20]);
 pub struct Face {
     pub plane_id: u16,
     pub plane_side: u16,
@@ -44,11 +57,13 @@ pub struct Face {
     pub lightmap_offset: u32,
 }
 
+assert_eq_size!(ClipNode, [u8; 8]);
 pub struct ClipNode {
     pub plane_id: u32,
     pub children: [i16; 2],
 }
 
+assert_eq_size!(Leaf, [u8; 24]);
 pub struct Leaf {
     pub contents: i32,
     //pub vis_offset: Option<u32>, // TODO : ???
@@ -58,6 +73,7 @@ pub struct Leaf {
     pub ambient_levels: [u8; 4],
 }
 
+assert_eq_size!(Model, [u8; 44]);
 pub struct Model {
     pub bounds: BBoxFloat,
     pub origin: Vec3f,
