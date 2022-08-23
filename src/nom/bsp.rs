@@ -1,12 +1,5 @@
-use nom::{
-    combinator::verify,
-    multi::{length_count, many0},
-    number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
-    sequence::tuple,
-};
-
 use crate::{
-    nom::{map::tmp_entities, texture::mip_texture, SliceExt},
+    nom::{map::entities_bin, texture::mip_texture, SliceExt},
     repr::{
         bsp::{
             BBoxFloat, BBoxShort, ClipNode, Face, Leaf, Level, Map, Model, Node, Plane,
@@ -14,6 +7,12 @@ use crate::{
         },
         texture::MipTexture,
     },
+};
+use nom::{
+    combinator::verify,
+    multi::{length_count, many0},
+    number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
+    sequence::tuple,
 };
 
 const BSP_VERSION: u32 = 30;
@@ -198,7 +197,7 @@ fn mip_textures(i: &[u8]) -> nom::IResult<&[u8], Vec<MipTexture>> {
 pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
     let (i, _) = verify(le_u32, |x: &u32| *x == BSP_VERSION)(file)?;
 
-    let (i, _) = lump(i, file, tmp_entities)?;
+    let (i, entities) = lump(i, file, entities_bin)?;
     let (i, planes) = lump(i, file, many0(plane))?;
     let (i, textures) = lump(i, file, mip_textures)?;
     let (i, vertices) = lump(i, file, many0(vec3f))?;
@@ -219,6 +218,7 @@ pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
             textures,
             lighting,
             map: Map {
+                entities,
                 planes,
                 vertices,
                 nodes,
@@ -247,4 +247,5 @@ fn parse_bsp() {
     }
     println!("Faces: {}", level.map.faces.len());
     println!("Models: {}", level.map.models.len());
+    println!("Entities: {:?}", level.map.entities);
 }

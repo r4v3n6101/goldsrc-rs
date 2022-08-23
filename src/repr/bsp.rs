@@ -1,4 +1,4 @@
-use crate::{repr::map::Entities, repr::texture::MipTexture};
+use crate::repr::{map::Entities, texture::MipTexture};
 
 assert_eq_size!(Vec3s, [u8; 6]);
 pub type Vec3s = [i16; 3];
@@ -86,7 +86,7 @@ pub struct Model {
 }
 
 pub struct Map {
-    // TODO : pub entities: Entities,
+    pub entities: Entities,
     pub planes: Vec<Plane>,
     pub vertices: Vec<Vec3f>,
     pub nodes: Vec<Node>,

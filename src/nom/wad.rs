@@ -1,12 +1,11 @@
+use crate::{
+    nom::{cstr16, texture::mip_texture, SliceExt},
+    repr::{wad::Archive, wad::Content},
+};
 use nom::{
     bytes::complete::tag,
     multi::count,
     number::complete::{le_u16, le_u32, le_u8},
-};
-
-use crate::{
-    nom::{cstr16, texture::mip_texture, SliceExt},
-    repr::{wad::Archive, wad::Content},
 };
 
 const MAGIC: &[u8] = b"WAD3";
@@ -21,12 +20,9 @@ fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (&'a str, Co
     let (i, name) = cstr16(i)?;
     let data = file.off(offset as usize, size as usize)?;
 
-    if comp != 0 {
-        unimplemented!("Decompression not supported");
-    }
-
     let content = match ty {
         0x43 => Content::MipTexture(mip_texture(data)?.1),
+        _ if comp != 0 => Content::Compressed { full_size, data },
         _ => Content::Other(data),
     };
 
