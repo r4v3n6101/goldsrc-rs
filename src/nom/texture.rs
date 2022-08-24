@@ -1,6 +1,6 @@
 use crate::{
     nom::{cstr16, SliceExt},
-    repr::texture::{MipData, MipTexture},
+    repr::texture::{ColourData, MipTexture, Picture},
 };
 
 const PALETTE_SIZE: usize = 256;
@@ -14,7 +14,7 @@ pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     let (i, mip0_offset) = nom::number::complete::le_u32(i)?;
     let (i, mip2_offset) = nom::number::complete::le_u32(i)?;
     let (i, mip4_offset) = nom::number::complete::le_u32(i)?;
-    let (i, mip8_offset) = nom::number::complete::le_u32(i)?;
+    let (_, mip8_offset) = nom::number::complete::le_u32(i)?;
 
     let data = if [mip0_offset, mip2_offset, mip4_offset, mip8_offset]
         .iter()
@@ -25,7 +25,7 @@ pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
         let mip4_size = (width / 4) * (height / 4);
         let mip8_size = (width / 8) * (height / 8);
 
-        Some(MipData {
+        Some(ColourData {
             indices: [
                 input.off(mip0_offset as usize, mip0_size as usize)?,
                 input.off(mip2_offset as usize, mip2_size as usize)?,
@@ -39,7 +39,7 @@ pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     };
 
     Ok((
-        i,
+        &[],
         MipTexture {
             name,
             width,
@@ -49,13 +49,23 @@ pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     ))
 }
 
-#[test]
-fn parse_empty_miptex() {
-    let data = b"123456789012345\0\x05\0\0\0\x05\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-    let (_, mip_texture) = mip_texture(data.as_slice()).expect("error parsing file");
+pub fn qpic(input: &[u8]) -> nom::IResult<&[u8], Picture> {
+    let (i, width) = nom::number::complete::le_u32(input)?;
+    let (i, height) = nom::number::complete::le_u32(i)?;
 
-    assert_eq!(mip_texture.name, "123456789012345");
-    assert_eq!(mip_texture.width, 5);
-    assert_eq!(mip_texture.height, 5);
-    assert!(mip_texture.data.is_none());
+    let (i, indices) = nom::bytes::complete::take(width * height)(i)?;
+    let (i, _) = nom::number::complete::le_u16(i)?; // size of palette colours, always 256
+    let (_, palette) = nom::bytes::complete::take(PALETTE_SIZE * 3)(i)?;
+
+    Ok((
+        &[],
+        Picture {
+            width,
+            height,
+            data: ColourData {
+                indices: [indices],
+                palette,
+            },
+        },
+    ))
 }

@@ -1,3 +1,4 @@
+use crate::nom::texture::qpic;
 use crate::{
     nom::{cstr16, texture::mip_texture, SliceExt},
     repr::{wad::Archive, wad::Content},
@@ -21,6 +22,7 @@ fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (&'a str, Co
     let data = file.off(offset as usize, size as usize)?;
 
     let content = match ty {
+        0x42 => Content::Picture(qpic(data)?.1),
         0x43 => Content::MipTexture(mip_texture(data)?.1),
         _ if comp != 0 => Content::Compressed { full_size, data },
         _ => Content::Other(data),
