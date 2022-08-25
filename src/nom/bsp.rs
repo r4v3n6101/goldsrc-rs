@@ -237,15 +237,20 @@ pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
 
 #[test]
 fn parse_bsp() {
-    let data = std::fs::read("test.bsp").expect("error reading file");
-    let (_, level) = level(&data).expect("error parsing file");
+    for path in glob::glob("./assets/maps/*.bsp")
+        .expect("error globing maps")
+        .flatten()
+    {
+        let data = std::fs::read(path).expect("error reading file");
+        let (_, level) = level(&data).expect("error parsing file");
 
-    println!("Vertices: {}", level.map.vertices.len());
-    println!("Textures: {}", level.textures.len());
-    for miptex in &level.textures {
-        println!("== {}", miptex.name);
+        println!("Vertices: {}", level.map.vertices.len());
+        println!("Textures: {}", level.textures.len());
+        for miptex in &level.textures {
+            println!("== {}", miptex.name);
+        }
+        println!("Faces: {}", level.map.faces.len());
+        println!("Models: {}", level.map.models.len());
+        println!("Entities: {:#?}", level.map.entities);
     }
-    println!("Faces: {}", level.map.faces.len());
-    println!("Models: {}", level.map.models.len());
-    println!("Entities: {:?}", level.map.entities);
 }

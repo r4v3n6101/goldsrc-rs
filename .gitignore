@@ -1,5 +1,4 @@
 .idea
 /target
 Cargo.lock
-test.wad
-test.bsp
+/assets

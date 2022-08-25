@@ -1,9 +1,11 @@
 use crate::{
     nom::{cstr16, SliceExt},
-    repr::texture::{ColourData, MipTexture, Picture},
+    repr::texture::{CharInfo, ColourData, Font, MipTexture, Picture},
 };
 
 const PALETTE_SIZE: usize = 256;
+const GLYPHS_NUM: usize = 256;
+const QCHAR_WIDTH: u32 = 16;
 
 pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     let (i, name) = cstr16(input)?;
@@ -54,7 +56,7 @@ pub fn qpic(input: &[u8]) -> nom::IResult<&[u8], Picture> {
     let (i, height) = nom::number::complete::le_u32(i)?;
 
     let (i, indices) = nom::bytes::complete::take(width * height)(i)?;
-    let (i, _) = nom::number::complete::le_u16(i)?; // size of palette colours, always 256
+    let (i, _) = nom::number::complete::le_u16(i)?; // palette size
     let (_, palette) = nom::bytes::complete::take(PALETTE_SIZE * 3)(i)?;
 
     Ok((
@@ -62,6 +64,48 @@ pub fn qpic(input: &[u8]) -> nom::IResult<&[u8], Picture> {
         Picture {
             width,
             height,
+            data: ColourData {
+                indices: [indices],
+                palette,
+            },
+        },
+    ))
+}
+
+fn char_info(i: &[u8]) -> nom::IResult<&[u8], CharInfo> {
+    let (i, offset) = nom::number::complete::le_u16(i)?;
+    let (i, width) = nom::number::complete::le_u16(i)?;
+    Ok((i, CharInfo { offset, width }))
+}
+
+pub fn font(input: &[u8]) -> nom::IResult<&[u8], Font> {
+    let (i, width) = nom::number::complete::le_u32(input)?;
+    let (i, height) = nom::number::complete::le_u32(i)?;
+
+    let (i, row_count) = nom::number::complete::le_u32(i)?;
+    let (i, row_height) = nom::number::complete::le_u32(i)?;
+
+    let (i, chars_info) =
+        nom::combinator::map_res(nom::multi::count(char_info, GLYPHS_NUM), TryFrom::try_from)(i)?;
+
+    let needed = (height * width * QCHAR_WIDTH) + 2 + 768 + 64;
+    let width = if i.len() != needed as usize {
+        256
+    } else {
+        width * QCHAR_WIDTH
+    };
+    let (i, indices) = nom::bytes::complete::take(width * height)(i)?;
+    let (i, _) = nom::number::complete::le_u16(i)?; // palette size
+    let (_, palette) = nom::bytes::complete::take(PALETTE_SIZE * 3)(i)?;
+
+    Ok((
+        &[],
+        Font {
+            width,
+            height,
+            row_count,
+            row_height,
+            chars_info,
             data: ColourData {
                 indices: [indices],
                 palette,

@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 static_assertions = "1.1.0"
 nom = "7.1.1"
+
+[dev-dependencies]
+glob = "0.3.0"
+image = "0.24.3"
