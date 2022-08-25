@@ -17,19 +17,22 @@ const MAGIC: &[u8] = b"WAD3";
 fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (&'a str, Content<'a>)> {
     let (i, offset) = le_u32(i)?;
     let (i, size) = le_u32(i)?;
-    let (i, full_size) = le_u32(i)?;
+    let (i, _) = le_u32(i)?; // full_size, not used
     let (i, ty) = le_u8(i)?;
     let (i, comp) = le_u8(i)?;
     let (i, _) = le_u16(i)?;
     let (i, name) = cstr16(i)?;
     let data = file.off(offset as usize, size as usize)?;
 
+    if comp != 0 {
+        unimplemented!("compression not supported by goldsrc")
+    }
+
     let content = match ty {
         0x42 => Content::Picture(qpic(data)?.1),
         0x43 => Content::MipTexture(mip_texture(data)?.1),
         0x46 => Content::Font(font(data)?.1),
-        _ if comp != 0 => Content::Compressed { full_size, data },
-        _ => Content::Other(data),
+        ty => Content::Other { ty, data },
     };
 
     Ok((i, (name, content)))

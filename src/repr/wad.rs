@@ -8,7 +8,5 @@ pub enum Content<'file> {
     Picture(Picture<'file>),
     MipTexture(MipTexture<'file>),
     Font(Font<'file>),
-
-    Compressed { full_size: u32, data: &'file [u8] },
-    Other(&'file [u8]),
+    Other { ty: u8, data: &'file [u8] },
 }
