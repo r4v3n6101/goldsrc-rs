@@ -205,7 +205,7 @@ pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
     let (i, nodes) = lump(i, file, many0(node))?;
     let (i, texture_infos) = lump(i, file, many0(texinfo))?;
     let (i, faces) = lump(i, file, many0(face))?;
-    let (i, lighting) = lump(i, file, |x| Ok((&[], x)))?;
+    let (i, lighting) = lump(i, file, |x| Ok((&[], x.to_vec())))?;
     let (i, clip_nodes) = lump(i, file, many0(clip_node))?;
     let (i, leaves) = lump(i, file, many0(leaf))?;
     let (i, mark_surfaces) = lump(i, file, many0(le_u16))?;

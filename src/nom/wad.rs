@@ -14,7 +14,7 @@ use nom::{
 
 const MAGIC: &[u8] = b"WAD3";
 
-fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (&'a str, Content<'a>)> {
+fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (String, Content)> {
     let (i, offset) = le_u32(i)?;
     let (i, size) = le_u32(i)?;
     let (i, _) = le_u32(i)?; // full_size, not used
@@ -32,10 +32,13 @@ fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (&'a str, Co
         0x42 => Content::Picture(qpic(data)?.1),
         0x43 => Content::MipTexture(mip_texture(data)?.1),
         0x46 => Content::Font(font(data)?.1),
-        ty => Content::Other { ty, data },
+        ty => Content::Other {
+            ty,
+            data: data.to_vec(),
+        },
     };
 
-    Ok((i, (name, content)))
+    Ok((i, (name.to_string(), content)))
 }
 
 pub fn archive(file: &[u8]) -> nom::IResult<&[u8], Archive> {
@@ -54,14 +57,14 @@ pub fn archive(file: &[u8]) -> nom::IResult<&[u8], Archive> {
 
 #[cfg(test)]
 mod tests {
-    fn save_img<'a, const N: usize>(
+    fn save_img<const N: usize>(
         name: &str,
         width: u32,
         height: u32,
-        data: &'a crate::repr::texture::ColourData<'a, N>,
+        data: &crate::repr::texture::ColourData<N>,
     ) {
         let data = data.indices[0]
-            .into_iter()
+            .iter()
             .flat_map(|&i| {
                 let rgb_i = i as usize;
                 let r = data.palette[3 * rgb_i];

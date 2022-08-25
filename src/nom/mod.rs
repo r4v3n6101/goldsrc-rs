@@ -1,3 +1,4 @@
+use crate::repr::texture::Palette;
 use nom::error::{Error as NomErr, ErrorKind as NomErrKind};
 
 pub mod bsp;
@@ -6,6 +7,7 @@ pub mod texture;
 pub mod wad;
 
 const NAME_LEN: usize = 16;
+const PALETTE_SIZE: usize = 256 * 3;
 
 fn cstr16(i: &[u8]) -> nom::IResult<&[u8], &str> {
     let (i, cstr) = nom::bytes::complete::take(NAME_LEN)(i)?;
@@ -14,6 +16,10 @@ fn cstr16(i: &[u8]) -> nom::IResult<&[u8], &str> {
         std::str::from_utf8,
     )(cstr)?;
     Ok((i, cstr))
+}
+
+fn palette(i: &[u8]) -> nom::IResult<&[u8], Palette> {
+    nom::combinator::map_res(nom::bytes::complete::take(PALETTE_SIZE), TryFrom::try_from)(i)
 }
 
 #[inline]

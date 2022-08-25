@@ -100,9 +100,9 @@ pub struct Map {
     pub models: Vec<Model>,
 }
 
-pub struct Level<'file> {
-    pub textures: Vec<MipTexture<'file>>,
-    pub lighting: &'file [u8],
+pub struct Level {
+    pub textures: Vec<MipTexture>,
+    pub lighting: Vec<u8>,
 
     pub map: Map,
 }

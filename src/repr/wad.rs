@@ -1,12 +1,12 @@
 use crate::repr::texture::{Font, MipTexture, Picture};
 use std::collections::HashMap;
 
-pub type Archive<'file> = HashMap<&'file str, Content<'file>>;
+pub type Archive = HashMap<String, Content>;
 
 #[non_exhaustive]
-pub enum Content<'file> {
-    Picture(Picture<'file>),
-    MipTexture(MipTexture<'file>),
-    Font(Font<'file>),
-    Other { ty: u8, data: &'file [u8] },
+pub enum Content {
+    Picture(Picture),
+    MipTexture(MipTexture),
+    Font(Font),
+    Other { ty: u8, data: Vec<u8> },
 }
