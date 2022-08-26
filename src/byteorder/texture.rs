@@ -1,12 +1,15 @@
 use crate::{
-    byteorder::{
-        chunk, chunk_with_offset, cstr16, IoRes, LittleEndian, Read, ReadBytesExt, Seek, SeekFrom,
-    },
+    byteorder::{chunk, chunk_with_offset, cstr16},
     repr::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb},
 };
-use std::{array, mem, slice};
+use byteorder::{LittleEndian, ReadBytesExt};
+use std::{
+    array,
+    io::{self, Read, Seek, SeekFrom},
+    mem, slice,
+};
 
-fn palette<R: Read>(mut reader: R) -> IoRes<Box<Palette>> {
+fn palette<R: Read>(mut reader: R) -> io::Result<Box<Palette>> {
     const PALETTE_SIZE: usize = 256;
 
     let mut boxed_palette = Box::<Palette>::new_zeroed_slice(PALETTE_SIZE);
@@ -21,7 +24,7 @@ fn palette<R: Read>(mut reader: R) -> IoRes<Box<Palette>> {
     Ok(unsafe { boxed_palette.assume_init() })
 }
 
-pub fn qpic<R: Read>(mut reader: R) -> IoRes<Picture> {
+pub fn qpic<R: Read>(mut reader: R) -> io::Result<Picture> {
     let width = reader.read_u32::<LittleEndian>()?;
     let height = reader.read_u32::<LittleEndian>()?;
     let indices = chunk(&mut reader, (width * height) as usize)?;
@@ -38,7 +41,7 @@ pub fn qpic<R: Read>(mut reader: R) -> IoRes<Picture> {
     })
 }
 
-pub fn miptex<R: Read + Seek>(mut reader: R) -> IoRes<MipTexture> {
+pub fn miptex<R: Read + Seek>(mut reader: R) -> io::Result<MipTexture> {
     let begin = reader.stream_position()?;
 
     let name = cstr16(&mut reader)?;
@@ -73,14 +76,14 @@ pub fn miptex<R: Read + Seek>(mut reader: R) -> IoRes<MipTexture> {
     })
 }
 
-fn char_info<R: Read>(mut reader: R) -> IoRes<CharInfo> {
+fn char_info<R: Read>(mut reader: R) -> io::Result<CharInfo> {
     Ok(CharInfo {
         offset: reader.read_u16::<LittleEndian>()?,
         width: reader.read_u16::<LittleEndian>()?,
     })
 }
 
-pub fn font<R: Read + Seek>(mut reader: R, filesize: u32) -> IoRes<Font> {
+pub fn font<R: Read + Seek>(mut reader: R, filesize: u32) -> io::Result<Font> {
     const GLYPHS_NUM: usize = 256;
     const QCHAR_WIDTH: u32 = 16;
 

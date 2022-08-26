@@ -1,23 +1,27 @@
-use crate::byteorder::texture::miptex;
-use crate::repr::texture::MipTexture;
 use crate::{
-    byteorder::{IoErr, IoErrKind, IoRes, LittleEndian, Read, ReadBytesExt, Seek, SeekFrom},
+    byteorder::texture::miptex,
     repr::{
         bsp::{
             BBoxFloat, BBoxShort, ClipNode, Edge, Face, Leaf, Level, Model, Node, Plane,
             TextureInfo, Vec3f, Vec3s,
         },
         map::Entities,
+        texture::MipTexture,
     },
 };
-use std::{array, mem::size_of};
+use byteorder::{LittleEndian, ReadBytesExt};
+use std::{
+    array,
+    io::{self, Read, Seek, SeekFrom},
+    mem::size_of,
+};
 
 struct Lump {
     offset: u32,
     size: u32,
 }
 
-fn lump<R: Read>(reader: &mut R) -> IoRes<Lump> {
+fn lump<R: Read>(reader: &mut R) -> io::Result<Lump> {
     Ok(Lump {
         offset: reader.read_u32::<LittleEndian>()?,
         size: reader.read_u32::<LittleEndian>()?,
@@ -27,8 +31,8 @@ fn lump<R: Read>(reader: &mut R) -> IoRes<Lump> {
 fn lump_content<R: Read + Seek, T>(
     reader: &mut R,
     lump: &Lump,
-    f: fn(&mut R) -> IoRes<T>,
-) -> IoRes<Vec<T>> {
+    f: fn(&mut R) -> io::Result<T>,
+) -> io::Result<Vec<T>> {
     reader.seek(SeekFrom::Start(lump.offset as u64))?;
 
     let size = lump.size as usize / size_of::<T>();
@@ -40,36 +44,36 @@ fn lump_content<R: Read + Seek, T>(
     Ok(data)
 }
 
-fn vec3f<R: Read>(reader: &mut R) -> IoRes<Vec3f> {
+fn vec3f<R: Read>(reader: &mut R) -> io::Result<Vec3f> {
     array::try_from_fn(|_| reader.read_f32::<LittleEndian>())
 }
 
-fn vec3s<R: Read>(reader: &mut R) -> IoRes<Vec3s> {
+fn vec3s<R: Read>(reader: &mut R) -> io::Result<Vec3s> {
     array::try_from_fn(|_| reader.read_i16::<LittleEndian>())
 }
 
-fn edge<R: Read>(reader: &mut R) -> IoRes<Edge> {
+fn edge<R: Read>(reader: &mut R) -> io::Result<Edge> {
     Ok((
         reader.read_u16::<LittleEndian>()?,
         reader.read_u16::<LittleEndian>()?,
     ))
 }
 
-fn bboxs<R: Read>(reader: &mut R) -> IoRes<BBoxShort> {
+fn bboxs<R: Read>(reader: &mut R) -> io::Result<BBoxShort> {
     Ok(BBoxShort {
         min: vec3s(reader)?,
         max: vec3s(reader)?,
     })
 }
 
-fn bboxf<R: Read>(reader: &mut R) -> IoRes<BBoxFloat> {
+fn bboxf<R: Read>(reader: &mut R) -> io::Result<BBoxFloat> {
     Ok(BBoxFloat {
         min: vec3f(reader)?,
         max: vec3f(reader)?,
     })
 }
 
-fn plane<R: Read>(reader: &mut R) -> IoRes<Plane> {
+fn plane<R: Read>(reader: &mut R) -> io::Result<Plane> {
     Ok(Plane {
         normal: vec3f(reader)?,
         distance: reader.read_f32::<LittleEndian>()?,
@@ -77,7 +81,7 @@ fn plane<R: Read>(reader: &mut R) -> IoRes<Plane> {
     })
 }
 
-fn clip_node<R: Read>(reader: &mut R) -> IoRes<ClipNode> {
+fn clip_node<R: Read>(reader: &mut R) -> io::Result<ClipNode> {
     Ok(ClipNode {
         plane_id: reader.read_u32::<LittleEndian>()?,
         children: [
@@ -87,7 +91,7 @@ fn clip_node<R: Read>(reader: &mut R) -> IoRes<ClipNode> {
     })
 }
 
-fn face<R: Read>(reader: &mut R) -> IoRes<Face> {
+fn face<R: Read>(reader: &mut R) -> io::Result<Face> {
     Ok(Face {
         plane_id: reader.read_u16::<LittleEndian>()?,
         plane_side: reader.read_u16::<LittleEndian>()?,
@@ -104,7 +108,7 @@ fn face<R: Read>(reader: &mut R) -> IoRes<Face> {
     })
 }
 
-fn leaf<R: Read>(reader: &mut R) -> IoRes<Leaf> {
+fn leaf<R: Read>(reader: &mut R) -> io::Result<Leaf> {
     Ok(Leaf {
         contents: reader.read_i32::<LittleEndian>()?,
         vis_offset: reader.read_i32::<LittleEndian>()?,
@@ -120,7 +124,7 @@ fn leaf<R: Read>(reader: &mut R) -> IoRes<Leaf> {
     })
 }
 
-fn model<R: Read>(reader: &mut R) -> IoRes<Model> {
+fn model<R: Read>(reader: &mut R) -> io::Result<Model> {
     Ok(Model {
         bounds: bboxf(reader)?,
         origin: vec3f(reader)?,
@@ -136,7 +140,7 @@ fn model<R: Read>(reader: &mut R) -> IoRes<Model> {
     })
 }
 
-fn node<R: Read>(reader: &mut R) -> IoRes<Node> {
+fn node<R: Read>(reader: &mut R) -> io::Result<Node> {
     Ok(Node {
         plane_id: reader.read_u32::<LittleEndian>()?,
         children: [
@@ -149,7 +153,7 @@ fn node<R: Read>(reader: &mut R) -> IoRes<Node> {
     })
 }
 
-fn texinfo<R: Read>(reader: &mut R) -> IoRes<TextureInfo> {
+fn texinfo<R: Read>(reader: &mut R) -> io::Result<TextureInfo> {
     Ok(TextureInfo {
         s: vec3f(reader)?,
         s_shift: reader.read_f32::<LittleEndian>()?,
@@ -160,7 +164,7 @@ fn texinfo<R: Read>(reader: &mut R) -> IoRes<TextureInfo> {
     })
 }
 
-fn textures<R: Read + Seek>(mut reader: R, lump: &Lump) -> IoRes<Vec<MipTexture>> {
+fn textures<R: Read + Seek>(mut reader: R, lump: &Lump) -> io::Result<Vec<MipTexture>> {
     let begin = lump.offset as u64;
     reader.seek(SeekFrom::Start(begin))?;
 
@@ -179,13 +183,16 @@ fn textures<R: Read + Seek>(mut reader: R, lump: &Lump) -> IoRes<Vec<MipTexture>
     Ok(miptexs)
 }
 
-pub fn level<R: Read + Seek>(mut reader: R) -> IoRes<Level> {
+pub fn level<R: Read + Seek>(mut reader: R) -> io::Result<Level> {
     const BSP_VERSION: u32 = 30;
     const LUMPS_NUM: usize = 15;
 
     let version = reader.read_u32::<LittleEndian>()?;
     if version != BSP_VERSION {
-        return Err(IoErr::new(IoErrKind::Unsupported, "invalid bsp version"));
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "invalid bsp version",
+        ));
     }
     let lumps: [Lump; LUMPS_NUM] = array::try_from_fn(|_| lump(&mut reader))?;
 

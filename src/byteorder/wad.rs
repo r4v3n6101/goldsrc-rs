@@ -2,12 +2,15 @@ use crate::{
     byteorder::{
         chunk, cstr16,
         texture::{font, miptex, qpic},
-        IoErr, IoErrKind, IoRes, LittleEndian, Read, ReadBytesExt, Seek, SeekFrom,
     },
     repr::wad::{Archive, Content},
 };
+use byteorder::{LittleEndian, ReadBytesExt};
 use smol_str::SmolStr;
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    io::{self, Read, Seek, SeekFrom},
+};
 
 #[allow(dead_code)]
 struct Entry {
@@ -19,13 +22,13 @@ struct Entry {
     name: SmolStr,
 }
 
-pub fn archive<R: Read + Seek>(mut reader: R) -> IoRes<Archive> {
+pub fn archive<R: Read + Seek>(mut reader: R) -> io::Result<Archive> {
     const MAGIC: &[u8; 4] = b"WAD3";
 
     let mut header = [0u8; 4];
     reader.read_exact(&mut header)?;
     if &header != MAGIC {
-        return Err(IoErr::new(IoErrKind::Unsupported, "invalid magic"));
+        return Err(io::Error::new(io::ErrorKind::Unsupported, "invalid magic"));
     }
     let size = reader.read_u32::<LittleEndian>()?;
     let offset = reader.read_u32::<LittleEndian>()?;
