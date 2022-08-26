@@ -11,10 +11,11 @@ use nom::{
     multi::count,
     number::complete::{le_u16, le_u32, le_u8},
 };
+use smol_str::SmolStr;
 
 const MAGIC: &[u8] = b"WAD3";
 
-fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (String, Content)> {
+fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (SmolStr, Content)> {
     let (i, offset) = le_u32(i)?;
     let (i, size) = le_u32(i)?;
     let (i, _) = le_u32(i)?; // full_size, not used
@@ -38,7 +39,7 @@ fn entry<'a>(i: &'a [u8], file: &'a [u8]) -> nom::IResult<&'a [u8], (String, Con
         },
     };
 
-    Ok((i, (name.to_string(), content)))
+    Ok((i, (SmolStr::new_inline(name), content)))
 }
 
 pub fn archive(file: &[u8]) -> nom::IResult<&[u8], Archive> {
@@ -53,64 +54,4 @@ pub fn archive(file: &[u8]) -> nom::IResult<&[u8], Archive> {
             .into_iter()
             .collect(),
     ))
-}
-
-#[cfg(test)]
-mod tests {
-    fn save_img<const N: usize>(
-        name: &str,
-        width: u32,
-        height: u32,
-        data: &crate::repr::texture::ColourData<N>,
-    ) {
-        let data = data.indices[0]
-            .iter()
-            .flat_map(|&i| {
-                let rgb_i = i as usize;
-                let r = data.palette[3 * rgb_i];
-                let g = data.palette[3 * rgb_i + 1];
-                let b = data.palette[3 * rgb_i + 2];
-                if r == 255 || g == 255 || b == 255 {
-                    [0u8; 4]
-                } else {
-                    [r, g, b, 255]
-                }
-            })
-            .collect();
-
-        let imgbuf = image::RgbaImage::from_vec(width, height, data).unwrap();
-        imgbuf
-            .save(format!("./assets/output/{}.png", name))
-            .unwrap();
-    }
-
-    #[test]
-    fn extract_wad() {
-        use crate::repr::wad::Content;
-
-        for path in glob::glob("./assets/wad/*.wad")
-            .expect("error globing wad")
-            .flatten()
-        {
-            let data = std::fs::read(path).expect("error reading file");
-            let (_, archive) = super::archive(&data).expect("error parsing file");
-
-            for (name, content) in &archive {
-                match content {
-                    Content::Font(font) => save_img(name, font.width, font.height, &font.data),
-                    Content::Picture(pic) => save_img(name, pic.width, pic.height, &pic.data),
-                    Content::MipTexture(miptex) => save_img(
-                        name,
-                        miptex.width,
-                        miptex.height,
-                        miptex.data.as_ref().unwrap(),
-                    ),
-                    _ => {
-                        eprintln!("Unknown type: {}", name);
-                    }
-                }
-                println!("Saved: {}", name);
-            }
-        }
-    }
 }

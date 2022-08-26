@@ -2,8 +2,8 @@ use crate::{
     nom::{map::entities_bin, texture::mip_texture, SliceExt},
     repr::{
         bsp::{
-            BBoxFloat, BBoxShort, ClipNode, Face, Leaf, Level, Map, Model, Node, Plane,
-            TextureInfo, Vec3f, Vec3s,
+            BBoxFloat, BBoxShort, ClipNode, Face, Leaf, Level, Model, Node, Plane, TextureInfo,
+            Vec3f, Vec3s,
         },
         texture::MipTexture,
     },
@@ -100,7 +100,7 @@ fn face(i: &[u8]) -> nom::IResult<&[u8], Face> {
 
 fn leaf(i: &[u8]) -> nom::IResult<&[u8], Leaf> {
     let (i, contents) = le_i32(i)?;
-    let (i, _) = le_i32(i)?;
+    let (i, vis_offset) = le_i32(i)?;
     let (i, bounds) = bboxs(i)?;
     let (i, mark_surfaces_id) = le_u16(i)?;
     let (i, mark_surfaces_num) = le_u16(i)?;
@@ -112,6 +112,7 @@ fn leaf(i: &[u8]) -> nom::IResult<&[u8], Leaf> {
         i,
         Leaf {
             contents,
+            vis_offset,
             bounds,
             first_mark_surface_id: mark_surfaces_id,
             mark_surfaces_num,
@@ -124,12 +125,12 @@ fn model(i: &[u8]) -> nom::IResult<&[u8], Model> {
     let (i, bounds) = bboxf(i)?;
     let (i, origin) = vec3f(i)?;
 
-    let (i, _) = le_u32(i)?; // TODO : ???
-    let (i, _) = le_u32(i)?;
-    let (i, _) = le_u32(i)?;
-    let (i, _) = le_u32(i)?;
+    let (i, node0) = le_i32(i)?; // TODO : ???
+    let (i, node1) = le_i32(i)?;
+    let (i, node2) = le_i32(i)?;
+    let (i, node3) = le_i32(i)?;
 
-    let (i, _) = le_u32(i)?; // TODO : ???
+    let (i, vis_leafs) = le_i32(i)?; // TODO : ???
 
     let (i, faces_id) = le_u32(i)?;
     let (i, faces_num) = le_u32(i)?;
@@ -138,6 +139,8 @@ fn model(i: &[u8]) -> nom::IResult<&[u8], Model> {
         Model {
             bounds,
             origin,
+            _nodes: [node0, node1, node2, node3],
+            _vis_leafs: vis_leafs,
             first_face_id: faces_id,
             faces_num,
         },
@@ -201,7 +204,7 @@ pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
     let (i, planes) = lump(i, file, many0(plane))?;
     let (i, textures) = lump(i, file, mip_textures)?;
     let (i, vertices) = lump(i, file, many0(vec3f))?;
-    let (i, _) = lump(i, file, |x| Ok((&[], x)))?; // TODO : vis
+    let (i, visdata) = lump(i, file, |x| Ok((&[], x.to_vec())))?; // TODO : vis
     let (i, nodes) = lump(i, file, many0(node))?;
     let (i, texture_infos) = lump(i, file, many0(texinfo))?;
     let (i, faces) = lump(i, file, many0(face))?;
@@ -217,40 +220,19 @@ pub fn level(file: &[u8]) -> nom::IResult<&[u8], Level> {
         Level {
             textures,
             lighting,
-            map: Map {
-                entities,
-                planes,
-                vertices,
-                nodes,
-                texture_infos,
-                faces,
-                clip_nodes,
-                leaves,
-                mark_surfaces,
-                edges,
-                surfedges,
-                models,
-            },
+            visdata,
+            entities,
+            planes,
+            vertices,
+            nodes,
+            texture_infos,
+            faces,
+            clip_nodes,
+            leaves,
+            mark_surfaces,
+            edges,
+            surfedges,
+            models,
         },
     ))
-}
-
-#[test]
-fn parse_bsp() {
-    for path in glob::glob("./assets/maps/*.bsp")
-        .expect("error globing maps")
-        .flatten()
-    {
-        let data = std::fs::read(path).expect("error reading file");
-        let (_, level) = level(&data).expect("error parsing file");
-
-        println!("Vertices: {}", level.map.vertices.len());
-        println!("Textures: {}", level.textures.len());
-        for miptex in &level.textures {
-            println!("== {}", miptex.name);
-        }
-        println!("Faces: {}", level.map.faces.len());
-        println!("Models: {}", level.map.models.len());
-        println!("Entities: {:#?}", level.map.entities);
-    }
 }

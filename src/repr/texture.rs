@@ -1,3 +1,5 @@
+use smol_str::SmolStr;
+
 const MIP_LEVEL: usize = 4;
 const GLYPHS_COUNT: usize = 256;
 const PALETTE_SIZE: usize = 256;
@@ -11,7 +13,7 @@ pub struct ColourData<const N: usize> {
 }
 
 pub struct MipTexture {
-    pub name: String,
+    pub name: SmolStr,
     pub width: u32,
     pub height: u32,
     pub data: Option<ColourData<MIP_LEVEL>>,

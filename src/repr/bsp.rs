@@ -63,46 +63,45 @@ pub struct ClipNode {
     pub children: [i16; 2],
 }
 
-assert_eq_size!(Leaf, [u8; 24]);
+assert_eq_size!(Leaf, [u8; 28]);
 pub struct Leaf {
     pub contents: i32,
-    //pub vis_offset: Option<u32>, // TODO : ???
+    // TODO : rename probably
+    pub vis_offset: i32,
     pub bounds: BBoxShort,
     pub first_mark_surface_id: u16,
     pub mark_surfaces_num: u16,
     pub ambient_levels: [u8; 4],
 }
 
-assert_eq_size!(Model, [u8; 44]);
+assert_eq_size!(Model, [u8; 64]);
 pub struct Model {
     pub bounds: BBoxFloat,
     pub origin: Vec3f,
 
-    // TODO : unknown fields
-    //_nodes: [i32; 4],
-    //_vis_leafs: i32,
+    // TODO : rename
+    pub _nodes: [i32; 4],
+    pub _vis_leafs: i32,
+
     pub first_face_id: u32,
     pub faces_num: u32,
 }
 
-pub struct Map {
+pub struct Level {
     pub entities: Entities,
     pub planes: Vec<Plane>,
+    pub textures: Vec<MipTexture>,
     pub vertices: Vec<Vec3f>,
+    // TODO
+    pub visdata: Vec<u8>,
     pub nodes: Vec<Node>,
     pub texture_infos: Vec<TextureInfo>,
     pub faces: Vec<Face>,
+    pub lighting: Vec<u8>,
     pub clip_nodes: Vec<ClipNode>,
     pub leaves: Vec<Leaf>,
     pub mark_surfaces: Vec<u16>,
     pub edges: Vec<Edge>,
     pub surfedges: Vec<i32>,
     pub models: Vec<Model>,
-}
-
-pub struct Level {
-    pub textures: Vec<MipTexture>,
-    pub lighting: Vec<u8>,
-
-    pub map: Map,
 }

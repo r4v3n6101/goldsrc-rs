@@ -1,7 +1,8 @@
 use crate::repr::texture::{Font, MipTexture, Picture};
+use smol_str::SmolStr;
 use std::collections::HashMap;
 
-pub type Archive = HashMap<String, Content>;
+pub type Archive = HashMap<SmolStr, Content>;
 
 #[non_exhaustive]
 pub enum Content {

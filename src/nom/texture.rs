@@ -1,8 +1,8 @@
-use crate::nom::palette;
 use crate::{
-    nom::{cstr16, SliceExt},
+    nom::{cstr16, palette, SliceExt},
     repr::texture::{CharInfo, ColourData, Font, MipTexture, Picture},
 };
+use smol_str::SmolStr;
 
 const PALETTE_SIZE: usize = 256;
 const GLYPHS_NUM: usize = 256;
@@ -10,7 +10,7 @@ const QCHAR_WIDTH: u32 = 16;
 
 pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     let (i, name) = cstr16(input)?;
-    let name = name.to_string();
+    let name = SmolStr::new_inline(name);
 
     let (i, width) = nom::number::complete::le_u32(i)?;
     let (i, height) = nom::number::complete::le_u32(i)?;
