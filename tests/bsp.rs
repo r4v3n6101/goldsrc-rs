@@ -4,19 +4,14 @@ fn parse_bsp() {
         .expect("error globing maps")
         .flatten()
     {
+        let data = std::fs::read(&path).expect("error reading file");
         #[cfg(feature = "nom")]
-        let level = {
-            let data = std::fs::read(&path).expect("error reading file");
-            goldsrc_rs::nom::bsp::level(&data)
-                .expect("error parsing file")
-                .1
-        };
+        let level = goldsrc_rs::nom::bsp::level(&data)
+            .expect("error parsing file")
+            .1;
         #[cfg(feature = "byteorder")]
-        let level = {
-            let reader =
-                std::io::BufReader::new(std::fs::File::open(&path).expect("error opening file"));
-            goldsrc_rs::byteorder::bsp::level(reader).expect("error parsing level")
-        };
+        let level = goldsrc_rs::byteorder::bsp::level(std::io::Cursor::new(data))
+            .expect("error parsing level");
 
         println!("Vertices: {}", level.vertices.len());
         println!("Textures: {}", level.textures.len());

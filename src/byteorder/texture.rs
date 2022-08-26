@@ -2,19 +2,23 @@ use crate::{
     byteorder::{
         chunk, chunk_with_offset, cstr16, IoRes, LittleEndian, Read, ReadBytesExt, Seek, SeekFrom,
     },
-    repr::{
-        texture::CharInfo,
-        texture::{ColourData, Font, MipTexture, Palette, Picture},
-    },
+    repr::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb},
 };
-use std::array;
+use std::{array, mem, slice};
 
-fn palette<R: Read>(mut reader: R) -> IoRes<Palette> {
+fn palette<R: Read>(mut reader: R) -> IoRes<Box<Palette>> {
     const PALETTE_SIZE: usize = 256;
 
-    let mut buf = [0u8; PALETTE_SIZE * 3]; // TODO : no default?
-    reader.read_exact(&mut buf)?;
-    Ok(buf)
+    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(PALETTE_SIZE);
+    let buf = unsafe {
+        slice::from_raw_parts_mut(
+            boxed_palette.as_mut_ptr() as *mut u8,
+            PALETTE_SIZE * mem::size_of::<Rgb>(),
+        )
+    };
+    reader.read_exact(buf)?;
+
+    Ok(unsafe { boxed_palette.assume_init() })
 }
 
 pub fn qpic<R: Read>(mut reader: R) -> IoRes<Picture> {
@@ -51,7 +55,9 @@ pub fn miptex<R: Read + Seek>(mut reader: R) -> IoRes<MipTexture> {
             )
         })?;
 
-        reader.seek(SeekFrom::Start(begin + ((pixels * 85) >> 6) as u64 + 2))?;
+        reader.seek(SeekFrom::Start(
+            begin + 40 + ((pixels * 85) >> 6) as u64 + 2,
+        ))?;
         let palette = palette(&mut reader)?;
 
         Some(ColourData { indices, palette })

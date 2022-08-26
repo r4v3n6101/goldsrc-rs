@@ -1,22 +1,28 @@
 use smol_str::SmolStr;
+use std::array;
 
-const MIP_LEVEL: usize = 4;
-const GLYPHS_COUNT: usize = 256;
-const PALETTE_SIZE: usize = 256;
-const COLORS: usize = 3; // rgb
-
-pub type Palette = [u8; PALETTE_SIZE * COLORS]; // I hope it won't overflow the stack
+pub type Rgb = [u8; 3];
+pub type Palette = [Rgb];
 
 pub struct ColourData<const N: usize> {
     pub indices: [Vec<u8>; N],
-    pub palette: Palette,
+    pub palette: Box<Palette>,
+}
+
+impl<const N: usize> Default for ColourData<N> {
+    fn default() -> Self {
+        Self {
+            indices: array::from_fn(|_| Vec::new()),
+            palette: Box::default(),
+        }
+    }
 }
 
 pub struct MipTexture {
     pub name: SmolStr,
     pub width: u32,
     pub height: u32,
-    pub data: Option<ColourData<MIP_LEVEL>>,
+    pub data: Option<ColourData<4>>,
 }
 
 pub struct Picture {
@@ -35,6 +41,6 @@ pub struct Font {
     pub height: u32,
     pub row_count: u32,
     pub row_height: u32,
-    pub chars_info: [CharInfo; GLYPHS_COUNT],
+    pub chars_info: [CharInfo; 256],
     pub data: ColourData<1>,
 }

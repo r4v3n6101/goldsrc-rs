@@ -5,9 +5,7 @@ fn save_img<const N: usize>(name: &str, width: u32, height: u32, data: &ColourDa
         .iter()
         .flat_map(|&i| {
             let rgb_i = i as usize;
-            let r = data.palette[3 * rgb_i];
-            let g = data.palette[3 * rgb_i + 1];
-            let b = data.palette[3 * rgb_i + 2];
+            let [r, g, b] = data.palette[rgb_i];
             if r == 255 || g == 255 || b == 255 {
                 [0u8; 4]
             } else {
@@ -28,19 +26,16 @@ fn extract_wad() {
         .expect("error globing wad")
         .flatten()
     {
+        let data = std::fs::read(&path).expect("error reading file");
         #[cfg(feature = "nom")]
-        let archive = {
-            let data = std::fs::read(&path).expect("error reading file");
-            goldsrc_rs::nom::wad::archive(&data)
-                .expect("error parsing file")
-                .1
-        };
+        let archive = goldsrc_rs::nom::wad::archive(&data)
+            .expect("error parsing file")
+            .1;
+
         #[cfg(feature = "byteorder")]
-        let archive = {
-            let reader =
-                std::io::BufReader::new(std::fs::File::open(&path).expect("error opening file"));
-            goldsrc_rs::byteorder::wad::archive(reader).expect("error parsing file")
-        };
+        let archive = goldsrc_rs::byteorder::wad::archive(std::io::Cursor::new(data))
+            .expect("error parsing file");
+
         for (name, content) in &archive {
             match content {
                 Content::Font(font) => save_img(name, font.width, font.height, &font.data),

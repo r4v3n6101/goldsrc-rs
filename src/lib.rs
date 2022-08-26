@@ -1,3 +1,4 @@
+#![feature(new_uninit)]
 #![cfg_attr(feature = "byteorder", feature(array_try_from_fn))]
 
 #[macro_use]
