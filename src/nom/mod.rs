@@ -1,6 +1,4 @@
-use crate::repr::texture::{Palette, Rgb};
 use nom::error::{Error as NomErr, ErrorKind as NomErrKind};
-use std::mem::MaybeUninit;
 
 pub mod bsp;
 pub mod map;
@@ -8,7 +6,6 @@ pub mod texture;
 pub mod wad;
 
 const NAME_LEN: usize = 16;
-const PALETTE_SIZE: usize = 256;
 
 fn cstr16(i: &[u8]) -> nom::IResult<&[u8], &str> {
     let (i, cstr) = nom::bytes::complete::take(NAME_LEN)(i)?;
@@ -17,20 +14,6 @@ fn cstr16(i: &[u8]) -> nom::IResult<&[u8], &str> {
         std::str::from_utf8,
     )(cstr)?;
     Ok((i, cstr))
-}
-
-fn palette(i: &[u8]) -> nom::IResult<&[u8], Box<Palette>> {
-    let (i, palette) = nom::bytes::complete::take(PALETTE_SIZE * 3)(i)?;
-
-    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(PALETTE_SIZE);
-    unsafe {
-        let ptr = palette.as_ptr() as *const MaybeUninit<Rgb>;
-        boxed_palette
-            .as_mut_ptr()
-            .copy_from_nonoverlapping(ptr, PALETTE_SIZE);
-    }
-
-    Ok((i, unsafe { boxed_palette.assume_init() }))
 }
 
 #[inline]

@@ -1,12 +1,27 @@
 use crate::{
-    nom::{cstr16, palette, SliceExt},
-    repr::texture::{CharInfo, ColourData, Font, MipTexture, Picture},
+    nom::{cstr16, SliceExt},
+    repr::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb},
 };
 use smol_str::SmolStr;
+use std::mem::MaybeUninit;
 
 const PALETTE_SIZE: usize = 256;
 const GLYPHS_NUM: usize = 256;
 const QCHAR_WIDTH: u32 = 16;
+
+fn palette(i: &[u8]) -> nom::IResult<&[u8], Box<Palette>> {
+    let (i, palette) = nom::bytes::complete::take(PALETTE_SIZE * 3)(i)?;
+
+    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(PALETTE_SIZE);
+    unsafe {
+        let ptr = palette.as_ptr() as *const MaybeUninit<Rgb>;
+        boxed_palette
+            .as_mut_ptr()
+            .copy_from_nonoverlapping(ptr, PALETTE_SIZE);
+    }
+
+    Ok((i, unsafe { boxed_palette.assume_init() }))
+}
 
 pub fn mip_texture(input: &[u8]) -> nom::IResult<&[u8], MipTexture> {
     let (i, name) = cstr16(input)?;
