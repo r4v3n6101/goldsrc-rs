@@ -7,7 +7,6 @@ use std::mem::MaybeUninit;
 
 const PALETTE_SIZE: usize = 256;
 const GLYPHS_NUM: usize = 256;
-const QCHAR_WIDTH: u32 = 16;
 
 fn palette(i: &[u8]) -> nom::IResult<&[u8], Box<Palette>> {
     let (i, palette) = nom::bytes::complete::take(PALETTE_SIZE * 3)(i)?;
@@ -105,7 +104,8 @@ fn char_info(i: &[u8]) -> nom::IResult<&[u8], CharInfo> {
 }
 
 pub fn font(input: &[u8]) -> nom::IResult<&[u8], Font> {
-    let (i, width) = nom::number::complete::le_u32(input)?;
+    let (i, _) = nom::number::complete::le_u32(input)?;
+    let width = 256; // constant?
     let (i, height) = nom::number::complete::le_u32(i)?;
 
     let (i, row_count) = nom::number::complete::le_u32(i)?;
@@ -114,12 +114,6 @@ pub fn font(input: &[u8]) -> nom::IResult<&[u8], Font> {
     let (i, chars_info) =
         nom::combinator::map_res(nom::multi::count(char_info, GLYPHS_NUM), TryFrom::try_from)(i)?;
 
-    let needed = (height * width * QCHAR_WIDTH) + 2 + 768 + 64;
-    let width = if i.len() != needed as usize {
-        256
-    } else {
-        width * QCHAR_WIDTH
-    };
     let (i, indices) = nom::bytes::complete::take(width * height)(i)?;
     let (i, _) = nom::number::complete::le_u16(i)?; // palette size
     let (_, palette) = palette(i)?;

@@ -81,12 +81,12 @@ pub fn miptex(buf: Bytes) -> io::Result<MipTexture> {
 
 pub fn font(mut buf: Bytes) -> io::Result<Font> {
     const GLYPHS_NUM: usize = 256;
-    const QCHAR_WIDTH: u32 = 16;
 
     if buf.len() < 16 + 4 * GLYPHS_NUM {
         return eof();
     }
-    let width = buf.get_u32_le();
+    let _ = buf.get_u32_le();
+    let width = 256; // looks like constant
     let height = buf.get_u32_le();
     let row_count = buf.get_u32_le();
     let row_height = buf.get_u32_le();
@@ -95,11 +95,6 @@ pub fn font(mut buf: Bytes) -> io::Result<Font> {
         width: buf.get_u16_le(),
     });
 
-    let width = if buf.len() != (height * width * QCHAR_WIDTH) as usize + 2 + PALETTE_SIZE + 64 {
-        256
-    } else {
-        width * QCHAR_WIDTH
-    };
     let pixels = (width * height) as usize;
 
     if buf.len() < pixels + 2 + PALETTE_SIZE {

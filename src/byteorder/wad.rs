@@ -65,7 +65,7 @@ pub fn archive<R: Read + Seek>(mut reader: R) -> io::Result<Archive> {
         let content = match entry.ty {
             0x42 => Content::Picture(qpic(&mut reader)?),
             0x43 => Content::MipTexture(miptex(&mut reader)?),
-            0x46 => Content::Font(font(&mut reader, entry.size)?),
+            0x46 => Content::Font(font(&mut reader)?),
             ty => Content::Other {
                 ty,
                 data: chunk(&mut reader, entry.size as usize)?,

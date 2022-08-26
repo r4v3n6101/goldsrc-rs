@@ -83,22 +83,15 @@ fn char_info<R: Read>(mut reader: R) -> io::Result<CharInfo> {
     })
 }
 
-pub fn font<R: Read + Seek>(mut reader: R, filesize: u32) -> io::Result<Font> {
+pub fn font<R: Read + Seek>(mut reader: R) -> io::Result<Font> {
     const GLYPHS_NUM: usize = 256;
-    const QCHAR_WIDTH: u32 = 16;
 
-    let width = reader.read_u32::<LittleEndian>()?;
+    let _ = reader.read_u32::<LittleEndian>()?;
+    let width = 256; // constant?
     let height = reader.read_u32::<LittleEndian>()?;
     let row_count = reader.read_u32::<LittleEndian>()?;
     let row_height = reader.read_u32::<LittleEndian>()?;
     let chars_info: [_; GLYPHS_NUM] = array::try_from_fn(|_| char_info(&mut reader))?;
-
-    let width = if filesize != 16 + 2 * 256 + (height * width * QCHAR_WIDTH) + 2 + 768 + 64 {
-        256
-    } else {
-        width * QCHAR_WIDTH
-    };
-
     let indices = chunk(&mut reader, (width * height) as usize)?;
     let _ = reader.read_u16::<LittleEndian>()?;
     let palette = palette(&mut reader)?;
