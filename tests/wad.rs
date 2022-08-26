@@ -37,9 +37,9 @@ fn extract_wad() {
         };
         #[cfg(feature = "byteorder")]
         let archive = {
-            let mut reader =
+            let reader =
                 std::io::BufReader::new(std::fs::File::open(&path).expect("error opening file"));
-            goldsrc_rs::byteorder::wad::archive(&mut reader).expect("error parsing file")
+            goldsrc_rs::byteorder::wad::archive(reader).expect("error parsing file")
         };
         for (name, content) in &archive {
             match content {

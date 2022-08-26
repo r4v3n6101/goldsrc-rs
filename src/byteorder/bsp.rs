@@ -1,3 +1,5 @@
+use crate::byteorder::texture::miptex;
+use crate::repr::texture::MipTexture;
 use crate::{
     byteorder::{IoErr, IoErrKind, IoRes, LittleEndian, Read, ReadBytesExt, Seek, SeekFrom},
     repr::{
@@ -158,6 +160,25 @@ fn texinfo<R: Read>(reader: &mut R) -> IoRes<TextureInfo> {
     })
 }
 
+fn textures<R: Read + Seek>(mut reader: R, lump: &Lump) -> IoRes<Vec<MipTexture>> {
+    let begin = lump.offset as u64;
+    reader.seek(SeekFrom::Start(begin))?;
+
+    let num = reader.read_u32::<LittleEndian>()?;
+    let mut offsets = Vec::with_capacity(num as usize);
+    for _ in 0..num {
+        offsets.push(reader.read_u32::<LittleEndian>()?);
+    }
+
+    let mut miptexs = Vec::with_capacity(offsets.len());
+    for offset in offsets {
+        reader.seek(SeekFrom::Start(begin + offset as u64))?;
+        miptexs.push(miptex(&mut reader)?);
+    }
+
+    Ok(miptexs)
+}
+
 pub fn level<R: Read + Seek>(mut reader: R) -> IoRes<Level> {
     const BSP_VERSION: u32 = 30;
     const LUMPS_NUM: usize = 15;
@@ -171,7 +192,7 @@ pub fn level<R: Read + Seek>(mut reader: R) -> IoRes<Level> {
     Ok(Level {
         entities: Entities::new(), // TODO
         planes: lump_content(&mut reader, &lumps[1], plane)?,
-        textures: vec![], // TODO
+        textures: textures(&mut reader, &lumps[2])?,
         vertices: lump_content(&mut reader, &lumps[3], vec3f)?,
         visdata: lump_content(&mut reader, &lumps[4], ReadBytesExt::read_u8)?,
         nodes: lump_content(&mut reader, &lumps[5], node)?,

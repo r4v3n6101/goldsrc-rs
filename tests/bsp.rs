@@ -13,7 +13,7 @@ fn parse_bsp() {
         };
         #[cfg(feature = "byteorder")]
         let level = {
-            let mut reader =
+            let reader =
                 std::io::BufReader::new(std::fs::File::open(&path).expect("error opening file"));
             goldsrc_rs::byteorder::bsp::level(reader).expect("error parsing level")
         };
