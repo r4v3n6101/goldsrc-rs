@@ -27,17 +27,14 @@ fn palette<R: Read>(mut reader: R) -> io::Result<Box<Palette>> {
 pub fn qpic<R: Read>(mut reader: R) -> io::Result<Picture> {
     let width = reader.read_u32::<LittleEndian>()?;
     let height = reader.read_u32::<LittleEndian>()?;
-    let indices = chunk(&mut reader, (width * height) as usize)?;
+    let indices = [chunk(&mut reader, (width * height) as usize)?];
     let _ = reader.read_u16::<LittleEndian>()?; // palette size
     let palette = palette(&mut reader)?;
 
     Ok(Picture {
         width,
         height,
-        data: ColourData {
-            indices: [indices],
-            palette,
-        },
+        data: ColourData { indices, palette },
     })
 }
 
@@ -92,7 +89,7 @@ pub fn font<R: Read + Seek>(mut reader: R) -> io::Result<Font> {
     let row_count = reader.read_u32::<LittleEndian>()?;
     let row_height = reader.read_u32::<LittleEndian>()?;
     let chars_info: [_; GLYPHS_NUM] = array::try_from_fn(|_| char_info(&mut reader))?;
-    let indices = chunk(&mut reader, (width * height) as usize)?;
+    let indices = [chunk(&mut reader, (width * height) as usize)?];
     let _ = reader.read_u16::<LittleEndian>()?;
     let palette = palette(&mut reader)?;
 
@@ -102,9 +99,6 @@ pub fn font<R: Read + Seek>(mut reader: R) -> io::Result<Font> {
         row_count,
         row_height,
         chars_info,
-        data: ColourData {
-            indices: [indices],
-            palette,
-        },
+        data: ColourData { indices, palette },
     })
 }

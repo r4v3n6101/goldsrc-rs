@@ -84,10 +84,7 @@ fn plane<R: Read>(reader: &mut R) -> io::Result<Plane> {
 fn clip_node<R: Read>(reader: &mut R) -> io::Result<ClipNode> {
     Ok(ClipNode {
         plane_id: reader.read_u32::<LittleEndian>()?,
-        children: [
-            reader.read_i16::<LittleEndian>()?,
-            reader.read_i16::<LittleEndian>()?,
-        ],
+        children: array::try_from_fn(|_| reader.read_i16::<LittleEndian>())?,
     })
 }
 
@@ -98,12 +95,7 @@ fn face<R: Read>(reader: &mut R) -> io::Result<Face> {
         first_surfedge_id: reader.read_u32::<LittleEndian>()?,
         surfedges_num: reader.read_u16::<LittleEndian>()?,
         texture_info_id: reader.read_u16::<LittleEndian>()?,
-        lighting_styles: [
-            reader.read_u8()?,
-            reader.read_u8()?,
-            reader.read_u8()?,
-            reader.read_u8()?,
-        ],
+        lighting_styles: array::try_from_fn(|_| reader.read_u8())?,
         lightmap_offset: reader.read_u32::<LittleEndian>()?,
     })
 }
@@ -115,12 +107,7 @@ fn leaf<R: Read>(reader: &mut R) -> io::Result<Leaf> {
         bounds: bboxs(reader)?,
         first_mark_surface_id: reader.read_u16::<LittleEndian>()?,
         mark_surfaces_num: reader.read_u16::<LittleEndian>()?,
-        ambient_levels: [
-            reader.read_u8()?,
-            reader.read_u8()?,
-            reader.read_u8()?,
-            reader.read_u8()?,
-        ],
+        ambient_levels: array::try_from_fn(|_| reader.read_u8())?,
     })
 }
 
@@ -128,12 +115,7 @@ fn model<R: Read>(reader: &mut R) -> io::Result<Model> {
     Ok(Model {
         bounds: bboxf(reader)?,
         origin: vec3f(reader)?,
-        _nodes: [
-            reader.read_i32::<LittleEndian>()?,
-            reader.read_i32::<LittleEndian>()?,
-            reader.read_i32::<LittleEndian>()?,
-            reader.read_i32::<LittleEndian>()?,
-        ],
+        _nodes: array::try_from_fn(|_| reader.read_i32::<LittleEndian>())?,
         _vis_leafs: reader.read_i32::<LittleEndian>()?,
         first_face_id: reader.read_u32::<LittleEndian>()?,
         faces_num: reader.read_u32::<LittleEndian>()?,
@@ -143,10 +125,7 @@ fn model<R: Read>(reader: &mut R) -> io::Result<Model> {
 fn node<R: Read>(reader: &mut R) -> io::Result<Node> {
     Ok(Node {
         plane_id: reader.read_u32::<LittleEndian>()?,
-        children: [
-            reader.read_i16::<LittleEndian>()?,
-            reader.read_i16::<LittleEndian>()?,
-        ],
+        children: array::try_from_fn(|_| reader.read_i16::<LittleEndian>())?,
         bounds: bboxs(reader)?,
         first_face_id: reader.read_u16::<LittleEndian>()?,
         faces_num: reader.read_u16::<LittleEndian>()?,
