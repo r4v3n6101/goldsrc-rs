@@ -36,9 +36,6 @@ fn extract_wad() {
         let archive = goldsrc_rs::byteorder::wad::archive(std::io::Cursor::new(&data))
             .expect("error parsing file");
 
-        #[cfg(feature = "bytes")]
-        let archive = goldsrc_rs::bytes::wad::archive(data.into()).expect("error parsing file");
-
         for (name, content) in &archive {
             match content {
                 Content::Font(font) => save_img(name, font.width, font.height, &font.data),
