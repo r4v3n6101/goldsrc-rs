@@ -1,5 +1,5 @@
 use crate::{
-    byteorder::texture::miptex,
+    byteorder::{map::map, texture::miptex},
     repr::{
         bsp::{
             BBoxFloat, BBoxShort, ClipNode, Edge, Face, Leaf, Level, Model, Node, Plane,
@@ -162,6 +162,11 @@ fn textures<R: Read + Seek>(mut reader: R, lump: &Lump) -> io::Result<Vec<MipTex
     Ok(miptexs)
 }
 
+fn entities<R: Read + Seek>(mut reader: R, lump: &Lump) -> io::Result<Entities> {
+    reader.seek(SeekFrom::Start(lump.offset as u64))?;
+    map(reader, lump.size as usize)
+}
+
 pub fn level<R: Read + Seek>(mut reader: R) -> io::Result<Level> {
     const BSP_VERSION: u32 = 30;
     const LUMPS_NUM: usize = 15;
@@ -176,7 +181,7 @@ pub fn level<R: Read + Seek>(mut reader: R) -> io::Result<Level> {
     let lumps: [Lump; LUMPS_NUM] = array::try_from_fn(|_| lump(&mut reader))?;
 
     Ok(Level {
-        entities: Entities::new(), // TODO
+        entities: entities(&mut reader, &lumps[0])?,
         planes: lump_content(&mut reader, &lumps[1], plane)?,
         textures: textures(&mut reader, &lumps[2])?,
         vertices: lump_content(&mut reader, &lumps[3], vec3f)?,
