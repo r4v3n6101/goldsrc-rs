@@ -1,15 +1,16 @@
-use crate::{
-    byteorder::{
-        chunk, cstr16,
-        texture::{font, miptex, qpic},
-    },
-    repr::wad::{Archive, Content},
-};
-use byteorder::{LittleEndian, ReadBytesExt};
-use smol_str::SmolStr;
 use std::{
     collections::HashMap,
     io::{self, Read, Seek, SeekFrom},
+};
+
+use byteorder::{LittleEndian, ReadBytesExt};
+use smol_str::SmolStr;
+
+use crate::wad::{Archive, Content};
+
+use super::{
+    chunk, cstr16,
+    texture::{font, miptex, qpic},
 };
 
 #[allow(dead_code)]

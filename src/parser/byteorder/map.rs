@@ -1,5 +1,6 @@
-use crate::repr::map::{Entities, Entity};
 use std::io::{self, Read};
+
+use crate::map::{Entities, Entity};
 
 pub fn map<R: Read>(mut reader: R, size_hint: usize) -> io::Result<Entities> {
     let mut buf = vec![0; size_hint];

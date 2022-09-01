@@ -1,20 +1,21 @@
-use crate::{
-    byteorder::{map::map, texture::miptex},
-    repr::{
-        bsp::{
-            BBoxFloat, BBoxShort, ClipNode, Edge, Face, Leaf, Level, Model, Node, Plane,
-            TextureInfo, Vec3f, Vec3s,
-        },
-        map::Entities,
-        texture::MipTexture,
-    },
-};
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
     array,
     io::{self, Read, Seek, SeekFrom},
     mem::size_of,
 };
+
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use crate::{
+    bsp::{
+        BBoxFloat, BBoxShort, ClipNode, Edge, Face, Leaf, Level, Model, Node, Plane, TextureInfo,
+        Vec3f, Vec3s,
+    },
+    map::Entities,
+    texture::MipTexture,
+};
+
+use super::{map::map, texture::miptex};
 
 struct Lump {
     offset: u32,

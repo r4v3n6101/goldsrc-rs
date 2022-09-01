@@ -1,19 +1,19 @@
-use crate::{
-    nom::{map::entities_bin, texture::mip_texture, SliceExt},
-    repr::{
-        bsp::{
-            BBoxFloat, BBoxShort, ClipNode, Face, Leaf, Level, Model, Node, Plane, TextureInfo,
-            Vec3f, Vec3s,
-        },
-        texture::MipTexture,
-    },
-};
 use nom::{
     combinator::verify,
     multi::{length_count, many0},
     number::complete::{le_f32, le_i16, le_i32, le_u16, le_u32, le_u8},
     sequence::tuple,
 };
+
+use crate::{
+    bsp::{
+        BBoxFloat, BBoxShort, ClipNode, Face, Leaf, Level, Model, Node, Plane, TextureInfo, Vec3f,
+        Vec3s,
+    },
+    texture::MipTexture,
+};
+
+use super::{map::entities_bin, texture::mip_texture, SliceExt};
 
 const BSP_VERSION: u32 = 30;
 

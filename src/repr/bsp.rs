@@ -1,4 +1,4 @@
-use crate::repr::{map::Entities, texture::MipTexture};
+use super::{map::Entities, texture::MipTexture};
 
 assert_eq_size!(Vec3s, [u8; 6]);
 pub type Vec3s = [i16; 3];

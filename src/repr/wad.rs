@@ -1,6 +1,8 @@
-use crate::repr::texture::{Font, MipTexture, Picture};
-use smol_str::SmolStr;
 use std::collections::HashMap;
+
+use smol_str::SmolStr;
+
+use super::texture::{Font, MipTexture, Picture};
 
 pub type Archive = HashMap<SmolStr, Content>;
 

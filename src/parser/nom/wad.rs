@@ -1,17 +1,17 @@
-use crate::{
-    nom::{
-        cstr16,
-        texture::{font, mip_texture, qpic},
-        SliceExt,
-    },
-    repr::{wad::Archive, wad::Content},
-};
 use nom::{
     bytes::complete::tag,
     multi::count,
     number::complete::{le_u16, le_u32, le_u8},
 };
 use smol_str::SmolStr;
+
+use crate::{wad::Archive, wad::Content};
+
+use super::{
+    cstr16,
+    texture::{font, mip_texture, qpic},
+    SliceExt,
+};
 
 const MAGIC: &[u8] = b"WAD3";
 

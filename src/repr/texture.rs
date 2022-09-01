@@ -1,5 +1,6 @@
-use smol_str::SmolStr;
 use std::array;
+
+use smol_str::SmolStr;
 
 pub type Rgb = [u8; 3];
 pub type Palette = [Rgb];

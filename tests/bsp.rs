@@ -6,12 +6,9 @@ fn parse_bsp() {
     {
         let data = std::fs::read(&path).expect("error reading file");
         #[cfg(feature = "nom")]
-        let level = goldsrc_rs::nom::bsp::level(&data)
-            .expect("error parsing file")
-            .1;
+        let level = goldsrc_rs::bsp_from_bytes(&data).unwrap();
         #[cfg(feature = "byteorder")]
-        let level = goldsrc_rs::byteorder::bsp::level(std::io::Cursor::new(data))
-            .expect("error parsing level");
+        let level = goldsrc_rs::bsp(std::io::Cursor::new(data)).unwrap();
 
         println!("Vertices: {}", level.vertices.len());
         println!("Textures: {}", level.textures.len());

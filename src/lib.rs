@@ -6,9 +6,8 @@ extern crate static_assertions;
 
 pub use smol_str::SmolStr;
 
-#[cfg(feature = "byteorder")]
-pub mod byteorder;
-#[cfg(feature = "nom")]
-pub mod nom;
+pub use parser::*;
+pub use repr::*;
 
-pub mod repr;
+mod parser;
+mod repr;

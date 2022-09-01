@@ -1,20 +1,23 @@
-use smol_str::SmolStr;
 use std::{
     io::{self, Read, Seek, SeekFrom},
     str,
 };
+
+use smol_str::SmolStr;
 
 pub mod bsp;
 pub mod map;
 pub mod texture;
 pub mod wad;
 
+#[inline(always)]
 fn chunk<R: Read>(mut reader: R, size: usize) -> io::Result<Vec<u8>> {
     let mut buf = vec![0u8; size];
     reader.read_exact(&mut buf)?;
     Ok(buf)
 }
 
+#[inline(always)]
 fn chunk_with_offset<R: Read + Seek>(
     mut reader: R,
     offset: u64,

@@ -1,4 +1,3 @@
-use crate::repr::map::{Entities, Entity};
 use nom::{
     bytes::complete::take_until,
     character::complete::{char as character, multispace0},
@@ -6,6 +5,8 @@ use nom::{
     multi::many0,
     sequence::{delimited, separated_pair},
 };
+
+use crate::map::{Entities, Entity};
 
 fn property(i: &str) -> nom::IResult<&str, (&str, &str)> {
     separated_pair(

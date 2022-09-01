@@ -1,9 +1,10 @@
-use crate::{
-    nom::{cstr16, SliceExt},
-    repr::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb},
-};
-use smol_str::SmolStr;
 use std::mem::MaybeUninit;
+
+use smol_str::SmolStr;
+
+use crate::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb};
+
+use super::{cstr16, SliceExt};
 
 const PALETTE_SIZE: usize = 256;
 const GLYPHS_NUM: usize = 256;

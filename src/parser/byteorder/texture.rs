@@ -1,13 +1,14 @@
-use crate::{
-    byteorder::{chunk, chunk_with_offset, cstr16},
-    repr::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb},
-};
-use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
     array,
     io::{self, Read, Seek, SeekFrom},
     mem, slice,
 };
+
+use byteorder::{LittleEndian, ReadBytesExt};
+
+use crate::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb};
+
+use super::{chunk, chunk_with_offset, cstr16};
 
 fn palette<R: Read>(mut reader: R) -> io::Result<Box<Palette>> {
     const PALETTE_SIZE: usize = 256;

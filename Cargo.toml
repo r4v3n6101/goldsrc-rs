@@ -1,6 +1,6 @@
 [package]
 name = "goldsrc-rs"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 
 [dependencies]
@@ -8,6 +8,9 @@ static_assertions = "1"
 smol_str = "0.1.23"
 nom = { version = "7.1.1", optional = true }
 byteorder = { version = "1.4.3", optional = true }
+
+[features]
+default = ["byteorder"]
 
 [dev-dependencies]
 glob = "0.3.0"

@@ -1,4 +1,4 @@
-use goldsrc_rs::repr::{texture::ColourData, wad::Content};
+use goldsrc_rs::{texture::ColourData, wad::Content};
 
 fn save_img<const N: usize>(name: &str, width: u32, height: u32, data: &ColourData<N>) {
     let data = data.indices[0]
@@ -28,13 +28,9 @@ fn extract_wad() {
     {
         let data = std::fs::read(&path).expect("error reading file");
         #[cfg(feature = "nom")]
-        let archive = goldsrc_rs::nom::wad::archive(&data)
-            .expect("error parsing file")
-            .1;
-
+        let archive = goldsrc_rs::wad_from_bytes(&data).unwrap();
         #[cfg(feature = "byteorder")]
-        let archive = goldsrc_rs::byteorder::wad::archive(std::io::Cursor::new(&data))
-            .expect("error parsing file");
+        let archive = goldsrc_rs::wad(std::io::Cursor::new(&data)).unwrap();
 
         for (name, content) in &archive {
             match content {
