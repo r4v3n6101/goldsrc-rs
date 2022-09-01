@@ -1,6 +1,6 @@
 [package]
 name = "goldsrc-rs"
-version = "0.7.1"
+version = "0.7.2"
 authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -14,7 +14,7 @@ default = ["byteorder"]
 
 [dependencies]
 static_assertions = "1"
-smol_str = "0.1.23"
+smol_str = { version = "0.1.23", default-features = false }
 byteorder = { version = "1.4.3", optional = true }
 nom = { version = "7.1.1", optional = true }
 
