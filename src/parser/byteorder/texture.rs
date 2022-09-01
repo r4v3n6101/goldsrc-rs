@@ -89,7 +89,9 @@ pub fn font<R: Read + Seek>(mut reader: R) -> io::Result<Font> {
     let height = reader.read_u32::<LittleEndian>()?;
     let row_count = reader.read_u32::<LittleEndian>()?;
     let row_height = reader.read_u32::<LittleEndian>()?;
-    let chars_info: [_; GLYPHS_NUM] = array::try_from_fn(|_| char_info(&mut reader))?;
+    let chars_info = Box::new(array::try_from_fn::<_, GLYPHS_NUM, _>(|_| {
+        char_info(&mut reader)
+    })?);
     let indices = [chunk(&mut reader, (width * height) as usize)?];
     let _ = reader.read_u16::<LittleEndian>()?;
     let palette = palette(&mut reader)?;

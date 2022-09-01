@@ -13,7 +13,7 @@ pub fn map<R: Read>(mut reader: R, size_hint: usize) -> io::Result<Entities> {
             "{" => entities.push(Default::default()),
             "}" => {}
             line => {
-                let mut kv = line.split("\"");
+                let mut kv = line.split('"');
                 if let Some(key) = kv.nth(1) {
                     if let Some(value) = kv.nth(1) {
                         if let Some(entity) = entities.last_mut() {

@@ -42,6 +42,6 @@ pub struct Font {
     pub height: u32,
     pub row_count: u32,
     pub row_height: u32,
-    pub chars_info: [CharInfo; 256],
+    pub chars_info: Box<[CharInfo]>,
     pub data: ColourData<1>,
 }
