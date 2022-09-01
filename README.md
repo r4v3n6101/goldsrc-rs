@@ -1,6 +1,6 @@
 # goldsrc-rs
 
-Collection of file's parsers for goldsrc engine. Working with:
+Collection of file's parsers for goldsrc engine.
 
 # Supported files
 
@@ -36,9 +36,9 @@ fn main() {
 
 ## Contributing
 
-Pull requests are welcome. This haven't already been tested appropriately.
+Pull requests are welcome. This hasn't been tested appropriately.
 
-So you're welcome!
+So I'll be glad to see your results and bugs.
 
 ## License
 
