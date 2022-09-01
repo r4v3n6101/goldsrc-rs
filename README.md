@@ -14,9 +14,10 @@ In your **Cargo.toml** add new dependency:
 
 ```toml
 [dependcies]
-goldsrc = "0.7"
-# or using nom, default-features=false for disabling `byteorder` code
-goldsrc = { version = "0.7", default-features = false, features = ["nom"] }
+# default is `byteorder`
+goldsrc-rs = "0.7"
+# or using `nom`
+goldsrc-rs = { version = "0.7", default-features = false, features = ["nom"] }
 ```
 
 ## Usage
