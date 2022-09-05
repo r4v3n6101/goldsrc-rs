@@ -27,9 +27,6 @@ fn extract_wad() {
         .flatten()
     {
         let data = std::fs::read(&path).expect("error reading file");
-        #[cfg(feature = "nom")]
-        let archive = goldsrc_rs::wad_from_bytes(&data).unwrap();
-        #[cfg(feature = "byteorder")]
         let archive = goldsrc_rs::wad(std::io::Cursor::new(&data)).unwrap();
 
         for (name, content) in &archive {

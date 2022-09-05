@@ -1,6 +1,6 @@
 [package]
 name = "goldsrc-rs"
-version = "0.7.3"
+version = "0.8.0"
 authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2021"
 license = "MIT"
@@ -9,14 +9,10 @@ repository = "https://github.com/r4v3n6101/goldsrc-rs/"
 keywords = ["goldsrc", "gamedev", "parsing"]
 categories = ["parsing", "rendering::data-formats", "game-development"]
 
-[features]
-default = ["byteorder"]
-
 [dependencies]
 static_assertions = "1"
 smol_str = { version = "0.1.23", default-features = false }
-byteorder = { version = "1.4.3", optional = true }
-nom = { version = "7.1.1", optional = true }
+byteorder = "1.4.3"
 
 [dev-dependencies]
 glob = "0.3.0"

@@ -1,35 +1,40 @@
-use std::io;
+use std::{
+    io::{self, Read, Seek, SeekFrom},
+    str,
+};
 
-use crate::{bsp::Level, wad::Archive};
+use smol_str::SmolStr;
 
-#[cfg(feature = "byteorder")]
-mod byteorder;
-#[cfg(feature = "nom")]
-mod nom;
+pub mod bsp;
+pub mod map;
+pub mod texture;
+pub mod wad;
 
-#[cfg(feature = "nom")]
 #[inline(always)]
-fn nom_to_io<T, E>(res: Result<(&[u8], T), E>, msg: &'static str) -> io::Result<T> {
-    res.map(|(_, a)| a)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, msg))
+fn chunk<R: Read>(mut reader: R, size: usize) -> io::Result<Vec<u8>> {
+    let mut buf = vec![0u8; size];
+    reader.read_exact(&mut buf)?;
+    Ok(buf)
 }
 
-#[cfg(feature = "byteorder")]
-pub fn wad<R: io::Read + io::Seek>(reader: R) -> io::Result<Archive> {
-    byteorder::wad::archive(reader)
+#[inline(always)]
+fn chunk_with_offset<R: Read + Seek>(
+    mut reader: R,
+    offset: u64,
+    size: usize,
+) -> io::Result<Vec<u8>> {
+    reader.seek(SeekFrom::Start(offset))?;
+    chunk(reader, size)
 }
 
-#[cfg(feature = "byteorder")]
-pub fn bsp<R: io::Read + io::Seek>(reader: R) -> io::Result<Level> {
-    byteorder::bsp::level(reader)
-}
+fn cstr16<R: Read>(mut reader: R) -> io::Result<SmolStr> {
+    const NAME_LEN: usize = 16;
 
-#[cfg(feature = "nom")]
-pub fn wad_from_bytes(input: &[u8]) -> io::Result<Archive> {
-    nom_to_io(nom::wad::archive(input), "error parsing wad")
-}
+    let mut buf = [0u8; NAME_LEN];
+    reader.read_exact(&mut buf)?;
 
-#[cfg(feature = "nom")]
-pub fn bsp_from_bytes(input: &[u8]) -> io::Result<Level> {
-    nom_to_io(nom::bsp::level(input), "error parsing bsp")
+    let nul_index = buf.iter().position(|&b| b == 0).unwrap_or(NAME_LEN);
+    str::from_utf8(&buf[..nul_index])
+        .map(SmolStr::new_inline)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }

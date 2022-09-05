@@ -5,9 +5,6 @@ fn parse_bsp() {
         .flatten()
     {
         let data = std::fs::read(&path).expect("error reading file");
-        #[cfg(feature = "nom")]
-        let level = goldsrc_rs::bsp_from_bytes(&data).unwrap();
-        #[cfg(feature = "byteorder")]
         let level = goldsrc_rs::bsp(std::io::Cursor::new(data)).unwrap();
 
         println!("Vertices: {}", level.vertices.len());
