@@ -11,13 +11,13 @@ use crate::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, R
 use super::{chunk, chunk_with_offset, cstr16};
 
 fn palette<R: Read>(mut reader: R) -> io::Result<Box<Palette>> {
-    const PALETTE_SIZE: usize = 256;
+    let colours_used = reader.read_u16::<LittleEndian>()?.min(256) as usize; // index is u8
 
-    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(PALETTE_SIZE);
+    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(colours_used);
     let buf = unsafe {
         slice::from_raw_parts_mut(
             boxed_palette.as_mut_ptr() as *mut u8,
-            PALETTE_SIZE * mem::size_of::<Rgb>(),
+            colours_used * mem::size_of::<Rgb>(),
         )
     };
     reader.read_exact(buf)?;
@@ -29,7 +29,6 @@ pub fn qpic<R: Read>(mut reader: R) -> io::Result<Picture> {
     let width = reader.read_u32::<LittleEndian>()?;
     let height = reader.read_u32::<LittleEndian>()?;
     let indices = [chunk(&mut reader, (width * height) as usize)?];
-    let _ = reader.read_u16::<LittleEndian>()?; // palette size
     let palette = palette(&mut reader)?;
 
     Ok(Picture {
@@ -56,9 +55,7 @@ pub fn miptex<R: Read + Seek>(mut reader: R) -> io::Result<MipTexture> {
             )
         })?;
 
-        reader.seek(SeekFrom::Start(
-            begin + 40 + ((pixels * 85) >> 6) as u64 + 2,
-        ))?;
+        reader.seek(SeekFrom::Start(begin + 40 + ((pixels * 85) >> 6) as u64))?;
         let palette = palette(&mut reader)?;
 
         Some(ColourData { indices, palette })
@@ -93,7 +90,6 @@ pub fn font<R: Read + Seek>(mut reader: R) -> io::Result<Font> {
         char_info(&mut reader)
     })?);
     let indices = [chunk(&mut reader, (width * height) as usize)?];
-    let _ = reader.read_u16::<LittleEndian>()?;
     let palette = palette(&mut reader)?;
 
     Ok(Font {
