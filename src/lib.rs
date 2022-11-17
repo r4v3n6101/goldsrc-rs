@@ -6,8 +6,6 @@ extern crate static_assertions;
 
 use std::io::{self, Read, Seek};
 
-pub use smol_str::SmolStr;
-
 pub use repr::*;
 
 mod parser;

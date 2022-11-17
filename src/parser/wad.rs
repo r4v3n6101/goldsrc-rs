@@ -4,9 +4,11 @@ use std::{
 };
 
 use byteorder::{LittleEndian, ReadBytesExt};
-use smol_str::SmolStr;
 
-use crate::wad::{Archive, Content};
+use crate::{
+    wad::{Archive, Content},
+    CStr16,
+};
 
 use super::{
     chunk, cstr16,
@@ -20,7 +22,7 @@ struct Entry {
     size: u32,
     ty: u8,
     compression: u8,
-    name: SmolStr,
+    name: CStr16,
 }
 
 pub fn archive<R: Read + Seek>(mut reader: R) -> io::Result<Archive> {

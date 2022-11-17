@@ -11,7 +11,7 @@ categories = ["parsing", "rendering::data-formats", "game-development"]
 
 [dependencies]
 static_assertions = "1"
-smol_str = { version = "0.1.23", default-features = false }
+smallstr = "0.3.0"
 byteorder = "1.4.3"
 
 [dev-dependencies]

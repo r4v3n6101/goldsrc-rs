@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use smol_str::SmolStr;
+use crate::CStr16;
 
 use super::texture::{Font, MipTexture, Picture};
 
-pub type Archive = HashMap<SmolStr, Content>;
+pub type Archive = HashMap<CStr16, Content>;
 
 #[non_exhaustive]
 pub enum Content {

@@ -1,6 +1,6 @@
 use std::array;
 
-use smol_str::SmolStr;
+use crate::CStr16;
 
 pub type Rgb = [u8; 3];
 pub type Palette = [Rgb];
@@ -20,7 +20,7 @@ impl<const N: usize> Default for ColourData<N> {
 }
 
 pub struct MipTexture {
-    pub name: SmolStr,
+    pub name: CStr16,
     pub width: u32,
     pub height: u32,
     pub data: Option<ColourData<4>>,
