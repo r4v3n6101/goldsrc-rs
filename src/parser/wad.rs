@@ -6,14 +6,14 @@ use std::{
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
-use crate::wad::{ContentType, RawArchive, RawEntry, ReadSeek};
+use crate::wad::{ContentType, RawArchive, RawEntry, Reader};
 
 use super::cstr16;
 
-pub fn raw_archive<R: Read + Seek + 'static>(reader: R) -> io::Result<RawArchive> {
+pub fn raw_archive<R: Read + Seek + Send + Sync + 'static>(reader: R) -> io::Result<RawArchive> {
     const MAGIC: &[u8; 4] = b"WAD3";
 
-    let reader: Arc<Mutex<dyn ReadSeek>> = Arc::new(Mutex::new(reader));
+    let reader: Arc<Mutex<dyn Reader>> = Arc::new(Mutex::new(reader));
     let mut reader_ref = reader.lock().unwrap();
 
     let mut header = [0u8; 4];

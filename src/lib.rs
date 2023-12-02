@@ -11,7 +11,7 @@ pub use repr::*;
 mod parser;
 mod repr;
 
-pub fn raw_wad<R: Read + Seek + 'static>(reader: R) -> io::Result<wad::RawArchive> {
+pub fn raw_wad<R: Read + Seek + Send + Sync + 'static>(reader: R) -> io::Result<wad::RawArchive> {
     parser::wad::raw_archive(reader)
 }
 

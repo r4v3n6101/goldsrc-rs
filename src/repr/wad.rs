@@ -17,11 +17,11 @@ pub enum ContentType {
 }
 
 /// Helpful trait for Read and Seek dyn Trait
-pub(crate) trait ReadSeek: Read + Seek {}
-impl<T: Read + Seek> ReadSeek for T {}
+pub(crate) trait Reader: Read + Seek + Send + Sync {}
+impl<T: Read + Seek + Send + Sync> Reader for T {}
 
 struct SharedChunkReader {
-    source: Arc<Mutex<dyn ReadSeek>>,
+    source: Arc<Mutex<dyn Reader>>,
     begin: usize,
     end: usize,
 }
@@ -45,7 +45,7 @@ impl Read for SharedChunkReader {
 
 // TODO : Debug?
 pub struct RawEntry {
-    pub(crate) source: Arc<Mutex<dyn ReadSeek>>,
+    pub(crate) source: Arc<Mutex<dyn Reader>>,
     pub offset: u32,
     pub full_size: u32,
     pub size: u32,
