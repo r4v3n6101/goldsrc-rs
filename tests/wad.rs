@@ -1,4 +1,4 @@
-use goldsrc_rs::{texture::ColourData, wad::Content};
+use goldsrc_rs::{texture::ColourData, wad::ContentType};
 
 fn save_img<const N: usize>(name: &str, width: u32, height: u32, data: &ColourData<N>) {
     let data = data.indices[0]
@@ -27,18 +27,28 @@ fn extract_wad() {
         .flatten()
     {
         let data = std::fs::read(&path).expect("error reading file");
-        let archive = goldsrc_rs::wad(std::io::Cursor::new(&data)).unwrap();
+        let raw_archive = goldsrc_rs::raw_wad(std::io::Cursor::new(data)).unwrap();
 
-        for (name, content) in &archive {
-            match content {
-                Content::Font(font) => save_img(name, font.width, font.height, &font.data),
-                Content::Picture(pic) => save_img(name, pic.width, pic.height, &pic.data),
-                Content::MipTexture(miptex) => save_img(
-                    name,
-                    miptex.width,
-                    miptex.height,
-                    miptex.data.as_ref().unwrap(),
-                ),
+        for (name, entry) in &raw_archive.entries {
+            let reader = entry.reader();
+            match entry.ty {
+                ContentType::Font => {
+                    let font = goldsrc_rs::font(reader).unwrap();
+                    save_img(name, font.width, font.height, &font.data);
+                }
+                ContentType::Picture => {
+                    let pic = goldsrc_rs::pic(reader).unwrap();
+                    save_img(name, pic.width, pic.height, &pic.data);
+                }
+                ContentType::MipTexture => {
+                    let miptex = goldsrc_rs::miptex(reader).unwrap();
+                    save_img(
+                        name,
+                        miptex.width,
+                        miptex.height,
+                        miptex.data.as_ref().unwrap(),
+                    );
+                }
                 _ => {
                     eprintln!("Unknown type: {}", name);
                 }

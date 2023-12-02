@@ -1,6 +1,6 @@
 use std::{
     array,
-    io::{self, Read, Seek, SeekFrom},
+    io::{self, Cursor, Read},
     mem, slice,
 };
 
@@ -38,25 +38,30 @@ pub fn qpic<R: Read>(mut reader: R) -> io::Result<Picture> {
     })
 }
 
-pub fn miptex<R: Read + Seek>(mut reader: R) -> io::Result<MipTexture> {
-    let begin = reader.stream_position()?;
-
+pub fn miptex<R: Read>(mut reader: R) -> io::Result<MipTexture> {
     let name = cstr16(&mut reader)?;
     let width = reader.read_u32::<LittleEndian>()?;
     let height = reader.read_u32::<LittleEndian>()?;
     let offsets: [_; 4] = array::try_from_fn(|_| reader.read_u32::<LittleEndian>())?;
     let data = if offsets.iter().all(|&x| x != 0) {
         let pixels = (width * height) as usize;
+
+        // Skip something between header and first mip indices
+        for _ in 0..(offsets[0].saturating_sub(40)) {
+            reader.read_u8()?;
+        }
+        let data_len = ((pixels * 85) >> 6) as u32 + 2 + 256 * 3;
+        let mut cursor = Cursor::new(vec![0; data_len as usize]);
+        reader.read_exact(cursor.get_mut())?;
+
         let indices = array::try_from_fn(|i| {
             chunk_with_offset(
-                &mut reader,
-                begin + offsets[i] as u64,
+                &mut cursor,
+                offsets[i].saturating_sub(40) as u64,
                 pixels / (1 << (2 * i)),
             )
         })?;
-
-        reader.seek(SeekFrom::Start(begin + 40 + ((pixels * 85) >> 6) as u64))?;
-        let palette = palette(&mut reader)?;
+        let palette = palette(&mut cursor)?;
 
         Some(ColourData { indices, palette })
     } else {
@@ -78,7 +83,7 @@ fn char_info<R: Read>(mut reader: R) -> io::Result<CharInfo> {
     })
 }
 
-pub fn font<R: Read + Seek>(mut reader: R) -> io::Result<Font> {
+pub fn font<R: Read>(mut reader: R) -> io::Result<Font> {
     const GLYPHS_NUM: usize = 256;
 
     let _ = reader.read_u32::<LittleEndian>()?;
