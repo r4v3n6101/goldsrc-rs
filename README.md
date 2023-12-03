@@ -15,7 +15,7 @@ In your **Cargo.toml** add new dependency:
 
 ```toml
 [dependcies]
-goldsrc-rs = "0.9"
+goldsrc-rs = "0.10"
 ```
 
 ## Usage
@@ -23,11 +23,8 @@ goldsrc-rs = "0.9"
 ```rust
 fn main() {
     let file = File::open("test.wad").unwrap();
-    let raw_wad = goldsrc_rs::raw_wad(file);
-    // ...
-
-    let miptex = goldsrc_rs::miptex(raw_wad.entries.get("SKY").unwrap().reader()).unwrap();
-    // ...
+    let entries = goldsrc_rs::wad_entries(file);
+    // Parsing miptex, fonts and so on...
 
     let file = File::open("test.bsp").unwrap();
     let bsp = goldsrc_rs::bsp(file);
