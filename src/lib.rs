@@ -4,15 +4,24 @@
 #[macro_use]
 extern crate static_assertions;
 
-use std::io::{self, Read, Seek};
+use std::{
+    collections::HashMap,
+    io::{self, Read, Seek},
+};
 
 pub use repr::*;
 
 mod parser;
 mod repr;
 
-pub fn raw_wad<R: Read + Seek + Send + Sync + 'static>(reader: R) -> io::Result<wad::RawArchive> {
-    parser::wad::raw_archive(reader)
+pub fn wad_entries<R>(
+    reader: R,
+    remap_name_to_lower: bool,
+) -> io::Result<HashMap<CStr16, wad::Entry>>
+where
+    R: Read + Seek + Send + Sync + 'static,
+{
+    parser::wad::entries(reader, remap_name_to_lower)
 }
 
 pub fn pic<R: Read>(reader: R) -> io::Result<texture::Picture> {

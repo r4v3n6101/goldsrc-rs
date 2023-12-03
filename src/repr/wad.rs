@@ -1,10 +1,7 @@
 use std::{
-    collections::HashMap,
     io::{self, Read, Seek, SeekFrom},
     sync::{Arc, Mutex},
 };
-
-use crate::CStr16;
 
 #[non_exhaustive]
 #[repr(u8)]
@@ -44,7 +41,7 @@ impl Read for SharedChunkReader {
 }
 
 // TODO : Debug?
-pub struct RawEntry {
+pub struct Entry {
     pub(crate) source: Arc<Mutex<dyn Reader>>,
     pub offset: u32,
     pub full_size: u32,
@@ -53,7 +50,7 @@ pub struct RawEntry {
     pub compression: u8,
 }
 
-impl RawEntry {
+impl Entry {
     pub fn reader(&self) -> impl Read {
         SharedChunkReader {
             source: Arc::clone(&self.source),
@@ -61,8 +58,4 @@ impl RawEntry {
             end: (self.offset + self.size) as usize,
         }
     }
-}
-
-pub struct RawArchive {
-    pub entries: HashMap<CStr16, RawEntry>,
 }

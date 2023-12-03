@@ -27,23 +27,23 @@ fn extract_wad() {
         .flatten()
     {
         let data = std::fs::read(&path).expect("error reading file");
-        let raw_archive = goldsrc_rs::raw_wad(std::io::Cursor::new(data)).unwrap();
+        let entries = goldsrc_rs::wad_entries(std::io::Cursor::new(data), true).unwrap();
 
-        for (name, entry) in &raw_archive.entries {
+        for (name, entry) in entries {
             let reader = entry.reader();
             match entry.ty {
                 ContentType::Font => {
                     let font = goldsrc_rs::font(reader).unwrap();
-                    save_img(name, font.width, font.height, &font.data);
+                    save_img(&name, font.width, font.height, &font.data);
                 }
                 ContentType::Picture => {
                     let pic = goldsrc_rs::pic(reader).unwrap();
-                    save_img(name, pic.width, pic.height, &pic.data);
+                    save_img(&name, pic.width, pic.height, &pic.data);
                 }
                 ContentType::MipTexture => {
                     let miptex = goldsrc_rs::miptex(reader).unwrap();
                     save_img(
-                        name,
+                        &name,
                         miptex.width,
                         miptex.height,
                         miptex.data.as_ref().unwrap(),
