@@ -25,6 +25,9 @@ struct SharedChunkReader {
 
 impl Read for SharedChunkReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        if buf.is_empty() {
+            return Ok(0);
+        }
         if self.begin == self.end {
             return Ok(0);
         }
