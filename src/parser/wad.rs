@@ -15,7 +15,7 @@ use super::cstr16;
 
 pub fn entries<R>(reader: R, remap_name_to_lower: bool) -> io::Result<HashMap<CStr16, Entry>>
 where
-    R: Read + Seek + Send + Sync + 'static,
+    R: Read + Seek + Send + 'static,
 {
     const MAGIC: &[u8; 4] = b"WAD3";
 

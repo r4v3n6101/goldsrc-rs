@@ -19,7 +19,7 @@ pub fn wad_entries<R>(
     remap_name_to_lower: bool,
 ) -> io::Result<HashMap<CStr16, wad::Entry>>
 where
-    R: Read + Seek + Send + Sync + 'static,
+    R: Read + Seek + Send + 'static,
 {
     parser::wad::entries(reader, remap_name_to_lower)
 }
