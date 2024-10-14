@@ -1,5 +1,5 @@
-#![feature(new_uninit)]
 #![feature(array_try_from_fn)]
+#![feature(new_zeroed_alloc)]
 
 #[macro_use]
 extern crate static_assertions;
