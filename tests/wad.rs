@@ -1,6 +1,6 @@
-use goldsrc_rs::{texture::ColourData, wad::ContentType};
+use goldsrc_rs::{texture::ColorData, wad::ContentType};
 
-fn save_img<const N: usize>(name: &str, width: u32, height: u32, data: &ColourData<N>) {
+fn save_img<const N: usize>(name: &str, width: u32, height: u32, data: &ColorData<N>) {
     let data = data.indices[0]
         .iter()
         .flat_map(|&i| {

@@ -1,4 +1,5 @@
 use std::{
+    fmt,
     io::{self, Read, Seek, SeekFrom},
     sync::{Arc, Mutex},
 };
@@ -42,6 +43,7 @@ impl Read for SharedChunkReader {
     }
 }
 
+#[derive(Clone)]
 pub struct Entry {
     pub(crate) source: Arc<Mutex<dyn Reader>>,
     pub offset: u32,
@@ -49,6 +51,18 @@ pub struct Entry {
     pub size: u32,
     pub ty: ContentType,
     pub compression: u8,
+}
+
+impl fmt::Debug for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Entry")
+            .field("offset", &self.offset)
+            .field("full_size", &self.full_size)
+            .field("size", &self.size)
+            .field("ty", &self.ty)
+            .field("compression", &(self.compression != 0))
+            .finish()
+    }
 }
 
 impl Entry {

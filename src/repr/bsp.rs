@@ -15,12 +15,15 @@ pub type BBoxShort = BBox<Vec3s>;
 assert_eq_size!(BBoxFloat, [Vec3f; 2]);
 pub type BBoxFloat = BBox<Vec3f>;
 
+#[derive(Debug, Clone)]
 pub struct BBox<T> {
     pub min: T,
     pub max: T,
 }
 
 assert_eq_size!(Plane, [u8; 20]);
+
+#[derive(Debug, Clone)]
 pub struct Plane {
     pub normal: Vec3f,
     pub distance: f32,
@@ -28,6 +31,8 @@ pub struct Plane {
 }
 
 assert_eq_size!(Node, [u8; 24]);
+
+#[derive(Debug, Clone)]
 pub struct Node {
     pub plane_id: u32,
     pub children: [i16; 2],
@@ -37,6 +42,8 @@ pub struct Node {
 }
 
 assert_eq_size!(TextureInfo, [u8; 40]);
+
+#[derive(Debug, Clone)]
 pub struct TextureInfo {
     pub s: Vec3f,
     pub s_shift: f32,
@@ -47,6 +54,8 @@ pub struct TextureInfo {
 }
 
 assert_eq_size!(Face, [u8; 20]);
+
+#[derive(Debug, Clone)]
 pub struct Face {
     pub plane_id: u16,
     pub plane_side: u16,
@@ -58,12 +67,16 @@ pub struct Face {
 }
 
 assert_eq_size!(ClipNode, [u8; 8]);
+
+#[derive(Debug, Clone)]
 pub struct ClipNode {
     pub plane_id: u32,
     pub children: [i16; 2],
 }
 
 assert_eq_size!(Leaf, [u8; 28]);
+
+#[derive(Debug, Clone)]
 pub struct Leaf {
     pub contents: i32,
     // TODO : rename probably
@@ -75,6 +88,8 @@ pub struct Leaf {
 }
 
 assert_eq_size!(Model, [u8; 64]);
+
+#[derive(Debug, Clone)]
 pub struct Model {
     pub bounds: BBoxFloat,
     pub origin: Vec3f,
@@ -87,6 +102,7 @@ pub struct Model {
     pub faces_num: u32,
 }
 
+#[derive(Debug, Clone)]
 pub struct Level {
     pub entities: Entities,
     pub planes: Vec<Plane>,

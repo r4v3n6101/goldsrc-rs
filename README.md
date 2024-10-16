@@ -15,7 +15,7 @@ In your **Cargo.toml** add new dependency:
 
 ```toml
 [dependcies]
-goldsrc-rs = "0.10"
+goldsrc-rs = "0.13"
 ```
 
 ## Usage

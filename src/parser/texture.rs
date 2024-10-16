@@ -6,18 +6,18 @@ use std::{
 
 use byteorder::{LittleEndian, ReadBytesExt};
 
-use crate::texture::{CharInfo, ColourData, Font, MipTexture, Palette, Picture, Rgb};
+use crate::texture::{CharInfo, ColorData, Font, MipTexture, Palette, Picture, Rgb, MIP_LEVELS};
 
 use super::{chunk, chunk_with_offset, cstr16};
 
 fn palette<R: Read>(mut reader: R) -> io::Result<Box<Palette>> {
-    let colours_used = reader.read_u16::<LittleEndian>()?.min(256) as usize; // index is u8
+    let colors_used = reader.read_u16::<LittleEndian>()?.min(256) as usize; // index is u8
 
-    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(colours_used);
+    let mut boxed_palette = Box::<Palette>::new_zeroed_slice(colors_used);
     let buf = unsafe {
         slice::from_raw_parts_mut(
             boxed_palette.as_mut_ptr() as *mut u8,
-            colours_used * mem::size_of::<Rgb>(),
+            colors_used * mem::size_of::<Rgb>(),
         )
     };
     reader.read_exact(buf)?;
@@ -34,7 +34,7 @@ pub fn qpic<R: Read>(mut reader: R) -> io::Result<Picture> {
     Ok(Picture {
         width,
         height,
-        data: ColourData { indices, palette },
+        data: ColorData { indices, palette },
     })
 }
 
@@ -42,7 +42,7 @@ pub fn miptex<R: Read>(mut reader: R) -> io::Result<MipTexture> {
     let name = cstr16(&mut reader)?;
     let width = reader.read_u32::<LittleEndian>()?;
     let height = reader.read_u32::<LittleEndian>()?;
-    let offsets: [_; 4] = array::try_from_fn(|_| reader.read_u32::<LittleEndian>())?;
+    let offsets: [_; MIP_LEVELS] = array::try_from_fn(|_| reader.read_u32::<LittleEndian>())?;
     let data = if offsets.iter().all(|&x| x != 0) {
         let pixels = (width * height) as usize;
 
@@ -50,7 +50,7 @@ pub fn miptex<R: Read>(mut reader: R) -> io::Result<MipTexture> {
         for _ in 0..(offsets[0].saturating_sub(40)) {
             reader.read_u8()?;
         }
-        let data_len = ((pixels * 85) >> 6) as u32 + 2 + 256 * 3;
+        let data_len = (pixels * 4 / 3) as u32 + 2 + 256 * 3;
         let mut cursor = Cursor::new(vec![0; data_len as usize]);
         reader.read_exact(cursor.get_mut())?;
 
@@ -63,7 +63,7 @@ pub fn miptex<R: Read>(mut reader: R) -> io::Result<MipTexture> {
         })?;
         let palette = palette(&mut cursor)?;
 
-        Some(ColourData { indices, palette })
+        Some(ColorData { indices, palette })
     } else {
         None
     };
@@ -103,6 +103,6 @@ pub fn font<R: Read>(mut reader: R) -> io::Result<Font> {
         row_count,
         row_height,
         chars_info,
-        data: ColourData { indices, palette },
+        data: ColorData { indices, palette },
     })
 }
