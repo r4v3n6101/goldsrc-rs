@@ -50,7 +50,7 @@ pub fn miptex<R: Read>(mut reader: R) -> io::Result<MipTexture> {
         for _ in 0..(offsets[0].saturating_sub(40)) {
             reader.read_u8()?;
         }
-        let data_len = (pixels * 4 / 3) as u32 + 2 + 256 * 3;
+        let data_len = ((pixels * 85) >> 6) as u32 + 2 + 256 * 3;
         let mut cursor = Cursor::new(vec![0; data_len as usize]);
         reader.read_exact(cursor.get_mut())?;
 
