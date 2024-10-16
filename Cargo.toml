@@ -1,6 +1,6 @@
 [package]
 name = "goldsrc-rs"
-version = "0.13.1"
+version = "0.13.2"
 authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2021"
 license = "MIT"

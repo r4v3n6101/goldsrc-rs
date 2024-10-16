@@ -3,11 +3,12 @@ use crate::CStr16;
 pub const MIP_LEVELS: usize = 4;
 
 pub type Rgb = [u8; 3];
+pub type Index = u8;
 pub type Palette = [Rgb];
 
 #[derive(Debug, Clone)]
 pub struct ColorData<const N: usize> {
-    pub indices: [Vec<u8>; N],
+    pub indices: [Vec<Index>; N],
     pub palette: Box<Palette>,
 }
 
