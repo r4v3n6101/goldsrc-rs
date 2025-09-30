@@ -4,13 +4,23 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+/// The kind of resource stored in a WAD entry.
+///
+/// May be changed in the future to have more variants
 #[non_exhaustive]
 #[repr(u8)]
 #[derive(Debug, Clone, Copy)]
 pub enum ContentType {
+    /// Raw picture (often palettes or small graphics).
     Picture,
+
+    /// Mipmapped texture (used for BSP maps).
     MipTexture,
+
+    /// Bitmap font resource.
     Font,
+
+    /// Any other type
     Other(u8),
 }
 
@@ -43,13 +53,24 @@ impl Read for SharedChunkReader {
     }
 }
 
+/// A single file entry inside a WAD archive.
 #[derive(Clone)]
 pub struct Entry {
     pub(crate) source: Arc<Mutex<dyn Reader>>,
+
+    /// Byte offset from the start of the WAD file to the entry’s data.
     pub offset: u32,
+
+    /// Uncompressed size of the resource in bytes.
     pub full_size: u32,
+
+    /// Stored size of the resource in bytes (may differ if compressed).
     pub size: u32,
+
+    /// Type of content (texture, palette, etc.).
     pub ty: ContentType,
+
+    /// Compression method identifier (actually always 0).
     pub compression: u8,
 }
 

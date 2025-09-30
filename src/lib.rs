@@ -1,5 +1,6 @@
 #![feature(array_try_from_fn)]
 
+#[cfg(test)]
 #[macro_use]
 extern crate static_assertions;
 

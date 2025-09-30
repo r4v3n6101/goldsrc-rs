@@ -17,6 +17,7 @@ pub fn map<R: Read>(mut reader: R, size_hint: usize) -> io::Result<Entities> {
                     && let Some(value) = kv.nth(1)
                     && let Some(entity) = entities.last_mut()
                 {
+                    // TODO : ByteString
                     let key = String::from_utf8_lossy(key);
                     let value = String::from_utf8_lossy(value);
                     entity.insert(key.into_owned(), value.into_owned());
