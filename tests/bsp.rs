@@ -4,6 +4,7 @@ fn parse_bsp() {
         .expect("error globing maps")
         .flatten()
     {
+        println!("File: {:?}", path);
         let data = std::fs::read(&path).expect("error reading file");
         let level = goldsrc_rs::bsp(std::io::Cursor::new(data)).unwrap();
 

@@ -7,8 +7,8 @@ use std::{
 use byteorder::{LittleEndian, ReadBytesExt};
 
 use crate::{
-    wad::{ContentType, Entry, Reader},
     CStr16,
+    wad::{ContentType, Entry, Reader},
 };
 
 use super::cstr16;
@@ -30,7 +30,7 @@ where
     let size = reader_ref.read_u32::<LittleEndian>()?;
     let offset = reader_ref.read_u32::<LittleEndian>()?;
 
-    reader_ref.seek(SeekFrom::Start(offset as u64))?;
+    reader_ref.seek(SeekFrom::Start(offset.into()))?;
     (0..size)
         .map(|_| {
             let offset = reader_ref.read_u32::<LittleEndian>()?;
