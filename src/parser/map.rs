@@ -6,20 +6,20 @@ pub fn map<R: Read>(mut reader: R, size_hint: usize) -> io::Result<Entities> {
     let mut buf = vec![0; size_hint];
     reader.read_exact(&mut buf)?;
 
-    let s = String::from_utf8(buf).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     let mut entities: Vec<Entity> = Vec::new();
-    for line in s.lines() {
+    for line in buf.split(|x| *x == b'\n') {
         match line {
-            "{" => entities.push(Default::default()),
-            "}" => {}
+            b"{" => entities.push(Entity::default()),
+            b"}" => {}
             line => {
-                let mut kv = line.split('"');
-                if let Some(key) = kv.nth(1) {
-                    if let Some(value) = kv.nth(1) {
-                        if let Some(entity) = entities.last_mut() {
-                            entity.insert(key.to_string(), value.to_string());
-                        }
-                    }
+                let mut kv = line.split(|x| *x == b'"');
+                if let Some(key) = kv.nth(1)
+                    && let Some(value) = kv.nth(1)
+                    && let Some(entity) = entities.last_mut()
+                {
+                    let key = String::from_utf8_lossy(key);
+                    let value = String::from_utf8_lossy(value);
+                    entity.insert(key.into_owned(), value.into_owned());
                 }
             }
         }

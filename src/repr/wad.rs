@@ -61,11 +61,12 @@ impl fmt::Debug for Entry {
             .field("size", &self.size)
             .field("ty", &self.ty)
             .field("compression", &(self.compression != 0))
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl Entry {
+    #[must_use]
     pub fn reader(&self) -> impl Read {
         SharedChunkReader {
             source: Arc::clone(&self.source),
