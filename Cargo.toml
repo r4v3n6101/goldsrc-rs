@@ -1,6 +1,6 @@
 [package]
 name = "goldsrc-rs"
-version = "1.0.2"
+version = "2.0.0"
 authors = ["r4v3n6101 <raven6107@gmail.com>"]
 edition = "2024"
 license = "MIT"
@@ -11,8 +11,8 @@ keywords = ["goldsrc", "gamedev", "parsing"]
 categories = ["parsing", "rendering::data-formats", "game-development"]
 
 [dependencies]
-smallstr = "0.3"
-byteorder = "1.5"
+zerocopy = "0.8.40"
+zerocopy-derive = "0.8.40"
 
 [dev-dependencies]
 static_assertions = "1"

@@ -1,29 +1,45 @@
 {
-  description =
-    "Library for reading Goldsrc's files";
+  description = "Library for reading Goldsrc's files";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      naersk,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
-        overlays = [ rust-overlay.overlays.default ];
-        pkgs = import nixpkgs { inherit system overlays; };
-        rustVersion = pkgs.rust-bin.nightly.latest.default;
+        pkgs = import nixpkgs { inherit system; };
+        naersk' = pkgs.callPackage naersk { };
       in
       {
         formatter = pkgs.nixpkgs-fmt;
-
-        devShells.default = pkgs.mkShell {
-          buildInputs = [
-            (rustVersion.override {
-              extensions = [ "rust-src" "rust-analyzer" ];
-            })
-          ];
+        packages.default = naersk'.buildPackage {
+          src = ./.;
         };
-      });
+        devShells.default = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            cargo
+            rustc
+            rustfmt
+            rust-analyzer
+            rustPackages.clippy
+          ];
+
+          RUST_SRC_PATH = pkgs.rustPlatform.rustLibSrc;
+        };
+      }
+    );
 }
