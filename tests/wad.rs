@@ -1,6 +1,9 @@
 use std::path::Path;
 
-use goldsrc_rs::texture::ColorData;
+use goldsrc_rs::{
+    texture::{ColorData, font, mip_texture, picture},
+    wad::{wad, wad_entry},
+};
 
 fn save_img<const N: usize>(
     out_dir: &Path,
@@ -37,7 +40,7 @@ fn extract_wad() {
         .flatten()
     {
         let data = std::fs::read(&path).expect("error reading file");
-        let wad = goldsrc_rs::wad::wad(&data).unwrap();
+        let wad = wad(&data).unwrap();
 
         println!("File: {:?}", path);
         println!("Entries: {}", wad.entries.len());
@@ -63,11 +66,11 @@ fn extract_wad() {
                 continue;
             }
 
-            let bytes = goldsrc_rs::wad::entry_bytes(&data, entry).unwrap();
+            let bytes = wad_entry(&data, entry).unwrap();
 
             match entry.ty {
                 0x46 => {
-                    let font = goldsrc_rs::texture::font(bytes).unwrap();
+                    let font = font(bytes).unwrap();
                     save_img(
                         out_dir,
                         &format!("{name}_font"),
@@ -77,7 +80,7 @@ fn extract_wad() {
                     );
                 }
                 0x43 => {
-                    let miptex = goldsrc_rs::texture::mip_texture(bytes).unwrap();
+                    let miptex = mip_texture(bytes).unwrap();
                     let Some(data) = miptex.data else {
                         eprintln!("  missing miptex data: {}", name);
                         continue;
@@ -91,7 +94,7 @@ fn extract_wad() {
                     );
                 }
                 0x42 | 0x40 => {
-                    if let Ok(pic) = goldsrc_rs::texture::picture(bytes) {
+                    if let Ok(pic) = picture(bytes) {
                         save_img(
                             out_dir,
                             &format!("{name}_pic"),
@@ -99,7 +102,7 @@ fn extract_wad() {
                             pic.header.height.get(),
                             &pic.data,
                         );
-                    } else if let Ok(miptex) = goldsrc_rs::texture::mip_texture(bytes) {
+                    } else if let Ok(miptex) = mip_texture(bytes) {
                         if let Some(data) = miptex.data {
                             save_img(
                                 out_dir,

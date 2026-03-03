@@ -80,8 +80,9 @@ pub fn wad(bytes: &[u8]) -> io::Result<Wad<'_>> {
     Ok(Wad { header, entries })
 }
 
-pub fn entry_bytes<'a>(bytes: &'a [u8], entry: &WadEntry) -> io::Result<&'a [u8]> {
-    let (offset, size) = util::validate_range(entry.offset.get(), entry.disk_size.get())?;
+pub fn wad_entry<'a>(bytes: &'a [u8], entry: &WadEntry) -> io::Result<&'a [u8]> {
+    let (offset, size) =
+        util::validate_range(entry.offset.get(), entry.disk_size.get(), "wad entry")?;
     let data = bytes
         .get(offset..offset + size)
         .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "wad entry out of range"))?;

@@ -1,12 +1,14 @@
+use goldsrc_rs::bsp::level;
+
 #[test]
 fn parse_bsp() {
-    for path in glob::glob("./assets/maps/*.bsp")
-        .expect("error globing maps")
+    for path in glob::glob("./assets/bsp/*.bsp")
+        .expect("error globing bsp")
         .flatten()
     {
         println!("File: {:?}", path);
         let data = std::fs::read(&path).expect("error reading file");
-        let level = goldsrc_rs::bsp::level(&data).unwrap();
+        let level = level(&data).unwrap();
 
         println!("Planes: {}", level.planes.len());
         println!("Vertices: {}", level.vertices.len());

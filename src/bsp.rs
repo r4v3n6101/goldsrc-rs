@@ -235,12 +235,12 @@ fn lump_ref<'a, T>(bytes: &'a [u8], lump: &LumpInfo) -> io::Result<&'a [T]>
 where
     T: Immutable + FromBytes,
 {
-    let (offset, size) = util::validate_range(lump.offset.get(), lump.size.get())?;
+    let (offset, size) = util::validate_range(lump.offset.get(), lump.size.get(), "bsp lump")?;
     let data = bytes
         .get(offset..offset + size)
         .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "bsp lump out of range"))?;
     <[T]>::ref_from_bytes(data)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "bsp lump invalid "))
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "bsp lump invalid"))
 }
 
 fn miptex_lump(bytes: &[u8]) -> io::Result<Vec<MipTexture<'_>>> {
