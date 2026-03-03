@@ -1,11 +1,14 @@
-use std::io;
-
 use static_assertions::assert_eq_size;
 use zerocopy::{
     FromBytes,
     little_endian::{F32, I32, U16, U32},
 };
 use zerocopy_derive::*;
+
+use crate::{
+    error::{ParsingError, ParsingResult},
+    util::{mip_level_size, pixel_size},
+};
 
 /// Number of mip levels in a mipmapped texture.
 pub const MIP_LEVELS: usize = 4;
@@ -41,7 +44,7 @@ pub const SPRITE_FRAME_TYPE_GROUP: u32 = 1;
 /// RGB color as three u8 values (red, green, blue).
 pub type Rgb = [u8; 3];
 /// Index into a palette.
-pub type Index = u8;
+pub type PaletteIndex = u8;
 
 /// Parsed mipmapped texture (header + indexed data + palette).
 pub struct MipTexture<'a> {
@@ -70,7 +73,7 @@ pub struct Font<'a> {
 /// View of indexed color data and palette.
 pub struct ColorData<'a, const N: usize> {
     /// Indexed color data for each mip level (or single level for pictures).
-    pub indices: [&'a [Index]; N],
+    pub indices: [&'a [PaletteIndex]; N],
     /// Palette mapping indices to RGB colors.
     pub palette: &'a [Rgb],
 }
@@ -99,7 +102,7 @@ pub struct SpriteFrameSingle<'a> {
     /// Sprite frame header.
     pub header: &'a SpriteFrameHeader,
     /// Indices pointing to the palette.
-    pub indices: &'a [Index],
+    pub indices: &'a [PaletteIndex],
 }
 
 /// Quake/GoldSrc miptex header.
@@ -188,9 +191,9 @@ pub struct SpriteFrameHeader {
     pub height: U32,
 }
 
-pub fn mip_texture(bytes: &[u8]) -> io::Result<MipTexture<'_>> {
+pub fn mip_texture(bytes: &[u8]) -> ParsingResult<MipTexture<'_>> {
     let (header, _) = MipTextureHeader::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "miptex header too short"))?;
+        .map_err(|_| ParsingError::OutOfRange("miptex header"))?;
     let width = header.width.get();
     let height = header.height.get();
 
@@ -198,37 +201,23 @@ pub fn mip_texture(bytes: &[u8]) -> io::Result<MipTexture<'_>> {
         return Ok(MipTexture { header, data: None });
     }
 
-    let mut indices: [&[Index]; MIP_LEVELS] = [&[], &[], &[], &[]];
-
+    let mut ptr = bytes;
+    let mut indices = [Default::default(); MIP_LEVELS];
     for (level, slot) in indices.iter_mut().enumerate() {
         let offset = usize::try_from(header.offsets[level].get())
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "miptex offset overflow"))?;
-        let size = mip_level_size(width, height, level)?;
-        let data = bytes.get(offset..offset + size).ok_or_else(|| {
-            io::Error::new(io::ErrorKind::UnexpectedEof, "miptex data out of range")
-        })?;
+            .map_err(|_| ParsingError::NumberOverflow("miptex offset"))?;
+        let size = mip_level_size(width, height, level, "miptex")?;
+        let data = bytes
+            .get(offset..)
+            .ok_or(ParsingError::OutOfRange("miptex data"))?;
 
-        let (indices, _) = <[Index]>::ref_from_prefix_with_elems(data, size)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "miptex indices invalid"))?;
+        let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(data, size)
+            .map_err(|_| ParsingError::Invalid("miptex palette indices"))?;
         *slot = indices;
+        ptr = bytes;
     }
 
-    let palette_offset = {
-        let last_offset = usize::try_from(header.offsets[MIP_LEVELS - 1].get())
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "miptex offset overflow"))?;
-        let last_size = mip_level_size(width, height, MIP_LEVELS - 1)?;
-        last_offset
-            .checked_add(last_size)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "miptex size overflow"))?
-    };
-
-    let (palette, _) = {
-        let data = bytes
-            .get(palette_offset..)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "palette out of range"))?;
-
-        palette_ref(data)
-    }?;
+    let (palette, _) = palette(ptr)?;
 
     Ok(MipTexture {
         header,
@@ -236,15 +225,16 @@ pub fn mip_texture(bytes: &[u8]) -> io::Result<MipTexture<'_>> {
     })
 }
 
-pub fn picture(bytes: &[u8]) -> io::Result<Picture<'_>> {
+pub fn picture(bytes: &[u8]) -> ParsingResult<Picture<'_>> {
     let (header, bytes) = PictureHeader::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "pic header too short"))?;
+        .map_err(|_| ParsingError::OutOfRange("pic header"))?;
     let width = header.width.get();
     let height = header.height.get();
     let size = pixel_size(width, height, "picture")?;
-    let (indices, bytes) = <[Index]>::ref_from_prefix_with_elems(bytes, size)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "pic indices invalid"))?;
-    let (palette, _) = palette_ref(bytes)?;
+
+    let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(bytes, size)
+        .map_err(|_| ParsingError::Invalid("pic indices"))?;
+    let (palette, _) = palette(bytes)?;
 
     Ok(Picture {
         header,
@@ -255,16 +245,17 @@ pub fn picture(bytes: &[u8]) -> io::Result<Picture<'_>> {
     })
 }
 
-pub fn font(bytes: &[u8]) -> io::Result<Font<'_>> {
-    let (header, bytes) = FontHeader::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "font header too short"))?;
+pub fn font(bytes: &[u8]) -> ParsingResult<Font<'_>> {
+    let (header, bytes) =
+        FontHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("font header"))?;
 
     let width = header.width.get();
     let height = header.height.get();
     let size = pixel_size(width, height, "font")?;
-    let (indices, bytes) = <[Index]>::ref_from_prefix_with_elems(bytes, size)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "font indices invalid"))?;
-    let (palette, _) = palette_ref(bytes)?;
+
+    let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(bytes, size)
+        .map_err(|_| ParsingError::Invalid("font indices"))?;
+    let (palette, _) = palette(bytes)?;
 
     Ok(Font {
         header,
@@ -275,26 +266,26 @@ pub fn font(bytes: &[u8]) -> io::Result<Font<'_>> {
     })
 }
 
-pub fn sprite(bytes: &[u8]) -> io::Result<Sprite<'_>> {
+pub fn sprite(bytes: &[u8]) -> ParsingResult<Sprite<'_>> {
     let (header, bytes) = SpriteHeader::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "sprite header too short"))?;
+        .map_err(|_| ParsingError::OutOfRange("sprite header"))?;
 
     if header.magic != SPRITE_MAGIC {
-        return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "sprite magic invalid",
-        ));
+        return Err(ParsingError::WrongFourCC {
+            got: header.magic,
+            expected: SPRITE_MAGIC,
+        });
     }
 
     let version = header.version.get();
     if version != SPRITE_VERSION {
-        return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            format!("sprite version unsupported: expected {SPRITE_VERSION}, got {version}"),
-        ));
+        return Err(ParsingError::WrongVersion {
+            got: version,
+            expected: SPRITE_VERSION,
+        });
     }
 
-    let (palette, bytes) = palette_ref(bytes)?;
+    let (palette, bytes) = palette(bytes)?;
     let frames = frames_ref(bytes, header)?;
 
     Ok(Sprite {
@@ -304,9 +295,20 @@ pub fn sprite(bytes: &[u8]) -> io::Result<Sprite<'_>> {
     })
 }
 
-fn frames_ref<'a>(bytes: &'a [u8], header: &SpriteHeader) -> io::Result<Vec<SpriteFrame<'a>>> {
+pub fn palette(bytes: &[u8]) -> ParsingResult<(&'_ [Rgb], &'_ [u8])> {
+    let (size, bytes) =
+        U16::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("palette header"))?;
+
+    let count = usize::from(size.get()).min(256);
+    let (palette, bytes) = <[Rgb]>::ref_from_prefix_with_elems(bytes, count)
+        .map_err(|_| ParsingError::Invalid("palette"))?;
+
+    Ok((palette, bytes))
+}
+
+fn frames_ref<'a>(bytes: &'a [u8], header: &SpriteHeader) -> ParsingResult<Vec<SpriteFrame<'a>>> {
     let count = usize::try_from(header.frames_num.get())
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "sprite frame count overflow"))?;
+        .map_err(|_| ParsingError::NumberOverflow("sprite frame count"))?;
 
     let mut frames = Vec::with_capacity(count);
     let mut ptr = bytes;
@@ -319,9 +321,9 @@ fn frames_ref<'a>(bytes: &'a [u8], header: &SpriteHeader) -> io::Result<Vec<Spri
     Ok(frames)
 }
 
-fn frame_ref(bytes: &[u8]) -> io::Result<(SpriteFrame<'_>, &'_ [u8])> {
-    let (group, bytes) = U32::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "sprite frame too short"))?;
+fn frame_ref(bytes: &[u8]) -> ParsingResult<(SpriteFrame<'_>, &'_ [u8])> {
+    let (group, bytes) =
+        U32::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("sprite frame header"))?;
 
     match group.get() {
         SPRITE_FRAME_TYPE_SINGLE => {
@@ -329,19 +331,12 @@ fn frame_ref(bytes: &[u8]) -> io::Result<(SpriteFrame<'_>, &'_ [u8])> {
             Ok((SpriteFrame::Single(single), bytes))
         }
         SPRITE_FRAME_TYPE_GROUP => {
-            let (count, bytes) = U32::ref_from_prefix(bytes).map_err(|_| {
-                io::Error::new(io::ErrorKind::UnexpectedEof, "sprite group too short")
-            })?;
-            let count = usize::try_from(count.get()).map_err(|_| {
-                io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    "sprite group subframes count overflow",
-                )
-            })?;
-            let (intervals, bytes) =
-                <[F32]>::ref_from_prefix_with_elems(bytes, count).map_err(|_| {
-                    io::Error::new(io::ErrorKind::UnexpectedEof, "sprite group too short")
-                })?;
+            let (count, bytes) = U32::ref_from_prefix(bytes)
+                .map_err(|_| ParsingError::OutOfRange("sprite group header"))?;
+            let count = usize::try_from(count.get())
+                .map_err(|_| ParsingError::NumberOverflow("sprite group subframes count"))?;
+            let (intervals, bytes) = <[F32]>::ref_from_prefix_with_elems(bytes, count)
+                .map_err(|_| ParsingError::OutOfRange("sprite group intervals"))?;
 
             let mut subframes = Vec::with_capacity(count);
             let mut ptr = bytes;
@@ -353,56 +348,20 @@ fn frame_ref(bytes: &[u8]) -> io::Result<(SpriteFrame<'_>, &'_ [u8])> {
 
             Ok((SpriteFrame::Group(subframes), ptr))
         }
-        _ => Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "sprite group enum value invalid",
-        )),
+        _ => Err(ParsingError::Invalid("sprite group type")),
     }
 }
 
-fn frame_single_ref(bytes: &[u8]) -> io::Result<(SpriteFrameSingle<'_>, &'_ [u8])> {
-    let (header, bytes) = SpriteFrameHeader::ref_from_prefix(bytes).map_err(|_| {
-        io::Error::new(
-            io::ErrorKind::UnexpectedEof,
-            "sprite single frame header too short",
-        )
-    })?;
+fn frame_single_ref(bytes: &[u8]) -> ParsingResult<(SpriteFrameSingle<'_>, &'_ [u8])> {
+    let (header, bytes) = SpriteFrameHeader::ref_from_prefix(bytes)
+        .map_err(|_| ParsingError::OutOfRange("sprite single frame header"))?;
     let width = header.width.get();
     let height = header.height.get();
     let size = pixel_size(width, height, "sprite single frame")?;
-    let (indices, bytes) = <[Index]>::ref_from_prefix_with_elems(bytes, size).map_err(|_| {
-        io::Error::new(
-            io::ErrorKind::InvalidData,
-            "sprite single frame indices invalid",
-        )
-    })?;
+    let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(bytes, size)
+        .map_err(|_| ParsingError::Invalid("sprite single frame indices"))?;
 
     Ok((SpriteFrameSingle { header, indices }, bytes))
-}
-
-fn palette_ref(bytes: &[u8]) -> io::Result<(&'_ [Rgb], &'_ [u8])> {
-    let (size, bytes) = U16::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "palette out of range"))?;
-
-    let count = usize::from(size.get()).min(256);
-    let (palette, bytes) = <[Rgb]>::ref_from_prefix_with_elems(bytes, count)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "palette invalid"))?;
-
-    Ok((palette, bytes))
-}
-
-fn mip_level_size(width: u32, height: u32, level: usize) -> io::Result<usize> {
-    let w = width >> level;
-    let h = height >> level;
-    pixel_size(w, h, "miptex")
-}
-
-fn pixel_size(width: u32, height: u32, kind: &str) -> io::Result<usize> {
-    let size = width.checked_mul(height).ok_or_else(|| {
-        io::Error::new(io::ErrorKind::InvalidData, format!("{kind} size overflow"))
-    })?;
-    usize::try_from(size)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, format!("{kind} size overflow")))
 }
 
 assert_eq_size!(MipTextureHeader, [u8; 40]);

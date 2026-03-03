@@ -1,5 +1,3 @@
-use std::io;
-
 use static_assertions::assert_eq_size;
 use zerocopy::{
     FromBytes,
@@ -7,7 +5,10 @@ use zerocopy::{
 };
 use zerocopy_derive::*;
 
-use crate::util;
+use crate::{
+    error::{ParsingError, ParsingResult},
+    util,
+};
 
 /// WAD3 magic (Half-Life).
 pub const WAD3_MAGIC: [u8; 4] = *b"WAD3";
@@ -64,15 +65,15 @@ impl WadEntry {
     }
 }
 
-pub fn wad(bytes: &[u8]) -> io::Result<Wad<'_>> {
-    let (header, _) = WadHeader::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "wad header too short"))?;
+pub fn wad(bytes: &[u8]) -> ParsingResult<Wad<'_>> {
+    let (header, _) =
+        WadHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("wad header"))?;
 
     if header.magic != WAD3_MAGIC {
-        return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "invalid wad magic",
-        ));
+        return Err(ParsingError::WrongFourCC {
+            got: header.magic,
+            expected: WAD3_MAGIC,
+        });
     }
 
     let entries = entry_ref(bytes, header)?;
@@ -80,26 +81,26 @@ pub fn wad(bytes: &[u8]) -> io::Result<Wad<'_>> {
     Ok(Wad { header, entries })
 }
 
-pub fn wad_entry<'a>(bytes: &'a [u8], entry: &WadEntry) -> io::Result<&'a [u8]> {
-    let (offset, size) =
-        util::validate_range(entry.offset.get(), entry.disk_size.get(), "wad entry")?;
-    let data = bytes
-        .get(offset..offset + size)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "wad entry out of range"))?;
-
-    Ok(data)
+pub fn wad_entry<'a>(bytes: &'a [u8], entry: &WadEntry) -> ParsingResult<&'a [u8]> {
+    bytes
+        .get(util::to_validate_range(
+            entry.offset.get(),
+            entry.disk_size.get(),
+            "wad entry",
+        )?)
+        .ok_or(ParsingError::OutOfRange("wad entry"))
 }
 
-fn entry_ref<'a>(bytes: &'a [u8], header: &WadHeader) -> io::Result<&'a [WadEntry]> {
+fn entry_ref<'a>(bytes: &'a [u8], header: &WadHeader) -> ParsingResult<&'a [WadEntry]> {
     let count = usize::try_from(header.entries.get())
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "wad entry count overflow"))?;
+        .map_err(|_| ParsingError::NumberOverflow("wad entry count"))?;
     let offset = usize::try_from(header.entry_offset.get())
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "wad entry offset overflow"))?;
+        .map_err(|_| ParsingError::NumberOverflow("wad entries offset"))?;
     let data = bytes
         .get(offset..)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "wad entry out of range"))?;
+        .ok_or(ParsingError::OutOfRange("wad entries"))?;
     let (entries, _) = <[WadEntry]>::ref_from_prefix_with_elems(data, count)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "wad entry invalid"))?;
+        .map_err(|_| ParsingError::Invalid("wad entries"))?;
 
     Ok(entries)
 }

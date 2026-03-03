@@ -2,7 +2,7 @@ use goldsrc_rs::bsp::level;
 
 #[test]
 fn parse_bsp() {
-    for path in glob::glob("./assets/bsp/*.bsp")
+    for path in glob::glob("./valve/maps/*.bsp")
         .expect("error globing bsp")
         .flatten()
     {

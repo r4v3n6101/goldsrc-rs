@@ -1,9 +1,8 @@
 Cargo.lock
 
-.DS_Store
 **/.DS_Store
-
-/assets
-/target
+**/valve
+**/output
+**/target
 
 .direnv/

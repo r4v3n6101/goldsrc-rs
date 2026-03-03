@@ -1,5 +1,3 @@
-use std::io;
-
 use static_assertions::assert_eq_size;
 use zerocopy::{
     FromBytes, Immutable,
@@ -8,6 +6,7 @@ use zerocopy::{
 use zerocopy_derive::*;
 
 use crate::{
+    error::{ParsingError, ParsingResult},
     texture::{self, MipTexture},
     util,
 };
@@ -200,16 +199,16 @@ pub struct BBox<T> {
     pub max: T,
 }
 
-pub fn level(bytes: &[u8]) -> io::Result<Level<'_>> {
-    let (header, _) = LevelHeader::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "bsp header too short"))?;
+pub fn level(bytes: &[u8]) -> ParsingResult<Level<'_>> {
+    let (header, _) =
+        LevelHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsd header"))?;
 
     let version = header.version.get();
     if version != BSP_VERSION {
-        return Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            format!("bsp version unsupported: expected {BSP_VERSION}, got {version}"),
-        ));
+        return Err(ParsingError::WrongVersion {
+            got: version,
+            expected: BSP_VERSION,
+        });
     }
 
     Ok(Level {
@@ -231,28 +230,30 @@ pub fn level(bytes: &[u8]) -> io::Result<Level<'_>> {
     })
 }
 
-fn lump_ref<'a, T>(bytes: &'a [u8], lump: &LumpInfo) -> io::Result<&'a [T]>
+fn lump_ref<'a, T>(bytes: &'a [u8], lump: &LumpInfo) -> ParsingResult<&'a [T]>
 where
     T: Immutable + FromBytes,
 {
-    let (offset, size) = util::validate_range(lump.offset.get(), lump.size.get(), "bsp lump")?;
     let data = bytes
-        .get(offset..offset + size)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "bsp lump out of range"))?;
-    <[T]>::ref_from_bytes(data)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "bsp lump invalid"))
+        .get(util::to_validate_range(
+            lump.offset.get(),
+            lump.size.get(),
+            "bsp lump",
+        )?)
+        .ok_or(ParsingError::OutOfRange("bsp lump"))?;
+    <[T]>::ref_from_bytes(data).map_err(|_| ParsingError::Invalid("bsp lump"))
 }
 
-fn miptex_lump(bytes: &[u8]) -> io::Result<Vec<MipTexture<'_>>> {
+fn miptex_lump(bytes: &[u8]) -> ParsingResult<Vec<MipTexture<'_>>> {
     let offsets = miptex_offsets(bytes)?;
     let mut textures = Vec::with_capacity(offsets.len());
 
     for offset in offsets {
         let offset = usize::try_from(offset.get())
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "miptex offset overflow"))?;
+            .map_err(|_| ParsingError::NumberOverflow("bsp miptex offset"))?;
         let slice = bytes
             .get(offset..)
-            .ok_or_else(|| io::Error::new(io::ErrorKind::UnexpectedEof, "miptex out of range"))?;
+            .ok_or(ParsingError::OutOfRange("bsp miptex"))?;
 
         textures.push(texture::mip_texture(slice)?);
     }
@@ -260,13 +261,13 @@ fn miptex_lump(bytes: &[u8]) -> io::Result<Vec<MipTexture<'_>>> {
     Ok(textures)
 }
 
-fn miptex_offsets(bytes: &[u8]) -> io::Result<&[U32]> {
-    let (count, rest) = U32::ref_from_prefix(bytes)
-        .map_err(|_| io::Error::new(io::ErrorKind::UnexpectedEof, "miptex header too short"))?;
+fn miptex_offsets(bytes: &[u8]) -> ParsingResult<&[U32]> {
+    let (count, rest) =
+        U32::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsp miptex header"))?;
     let count = usize::try_from(count.get())
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "miptex count overflow"))?;
+        .map_err(|_| ParsingError::NumberOverflow("bsp miptex offsets count"))?;
     let (offsets, _) = <[U32]>::ref_from_prefix_with_elems(rest, count)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "miptex offsets invalid"))?;
+        .map_err(|_| ParsingError::Invalid("bsp miptex offsets"))?;
 
     Ok(offsets)
 }

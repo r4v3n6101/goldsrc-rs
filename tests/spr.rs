@@ -29,10 +29,10 @@ fn save_img<const N: usize>(
 
 #[test]
 fn extract_spr() {
-    let out_dir = Path::new("./assets/output/");
+    let out_dir = Path::new("./output/");
     std::fs::create_dir_all(out_dir).expect("error creating output dir");
 
-    for path in glob::glob("./assets/spr/*.spr")
+    for path in glob::glob("./valve/sprites/*.spr")
         .expect("error globing spr")
         .flatten()
     {
