@@ -1,5 +1,6 @@
 use std::io;
 
+use static_assertions::assert_eq_size;
 use zerocopy::{
     FromBytes,
     little_endian::{U16, U32},
@@ -102,10 +103,5 @@ fn entry_ref<'a>(bytes: &'a [u8], header: &WadHeader) -> io::Result<&'a [WadEntr
     Ok(entries)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    assert_eq_size!(WadHeader, [u8; 12]);
-    assert_eq_size!(WadEntry, [u8; 32]);
-}
+assert_eq_size!(WadHeader, [u8; 12]);
+assert_eq_size!(WadEntry, [u8; 32]);

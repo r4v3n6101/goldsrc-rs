@@ -1,5 +1,6 @@
 use std::io;
 
+use static_assertions::assert_eq_size;
 use zerocopy::{
     FromBytes,
     little_endian::{U16, U32},
@@ -210,13 +211,8 @@ fn mip_level_size(width: u32, height: u32, level: usize) -> io::Result<usize> {
     pixel_size(w, h, "miptex")
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    assert_eq_size!(MipTextureHeader, [u8; 40]);
-    assert_eq_size!(PictureHeader, [u8; 8]);
-    assert_eq_size!(FontHeader, [u8; 1040]);
-    assert_eq_size!(CharInfo, [u8; 4]);
-    assert_eq_size!(Rgb, [u8; 3]);
-}
+assert_eq_size!(MipTextureHeader, [u8; 40]);
+assert_eq_size!(PictureHeader, [u8; 8]);
+assert_eq_size!(FontHeader, ([u8; 16], [u8; 4 * FONT_GLYPHS]));
+assert_eq_size!(CharInfo, [u8; 4]);
+assert_eq_size!(Rgb, [u8; 3]);

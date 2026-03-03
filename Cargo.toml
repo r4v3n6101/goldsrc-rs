@@ -13,8 +13,8 @@ categories = ["parsing", "rendering::data-formats", "game-development"]
 [dependencies]
 zerocopy = "0.8.40"
 zerocopy-derive = "0.8.40"
+static_assertions = "1"
 
 [dev-dependencies]
-static_assertions = "1"
 glob = "0.3"
 image = "0.25"

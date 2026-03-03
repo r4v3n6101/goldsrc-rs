@@ -1,5 +1,6 @@
 use std::io;
 
+use static_assertions::assert_eq_size;
 use zerocopy::{
     FromBytes, Immutable,
     little_endian::{F32, I16, I32, U16, U32},
@@ -270,20 +271,15 @@ fn miptex_offsets(bytes: &[u8]) -> io::Result<&[U32]> {
     Ok(offsets)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    assert_eq_size!(Plane, [u8; 20]);
-    assert_eq_size!(Node, [u8; 24]);
-    assert_eq_size!(TextureInfo, [u8; 40]);
-    assert_eq_size!(Face, [u8; 20]);
-    assert_eq_size!(ClipNode, [u8; 8]);
-    assert_eq_size!(Leaf, [u8; 28]);
-    assert_eq_size!(Model, [u8; 64]);
-    assert_eq_size!(Vec3s, [u8; 6]);
-    assert_eq_size!(Vec3f, [u8; 12]);
-    assert_eq_size!(Edge, [u8; 4]);
-    assert_eq_size!(BBox<Vec3s>, [Vec3s; 2]);
-    assert_eq_size!(BBox<Vec3f>, [Vec3f; 2]);
-}
+assert_eq_size!(Plane, [u8; 20]);
+assert_eq_size!(Node, [u8; 24]);
+assert_eq_size!(TextureInfo, [u8; 40]);
+assert_eq_size!(Face, [u8; 20]);
+assert_eq_size!(ClipNode, [u8; 8]);
+assert_eq_size!(Leaf, [u8; 28]);
+assert_eq_size!(Model, [u8; 64]);
+assert_eq_size!(Vec3s, [u8; 6]);
+assert_eq_size!(Vec3f, [u8; 12]);
+assert_eq_size!(Edge, [u8; 4]);
+assert_eq_size!(BBox<Vec3s>, [Vec3s; 2]);
+assert_eq_size!(BBox<Vec3f>, [Vec3f; 2]);
