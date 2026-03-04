@@ -1,14 +1,14 @@
 use static_assertions::assert_eq_size;
 use zerocopy::{
-    FromBytes, Immutable,
+    FromBytes,
     little_endian::{F32, I16, I32, U16, U32},
 };
 use zerocopy_derive::*;
 
 use crate::{
+    common::{BBox, Lump, Vec3f, Vec3s, lump_ref},
     error::{ParsingError, ParsingResult},
     texture::{self, MipTexture},
-    util,
 };
 
 /// BSP version (GoldSrc/Quake 1 format).
@@ -16,10 +16,6 @@ pub const BSP_VERSION: u32 = 30;
 /// Number of lumps in a BSP header.
 pub const BSP_LUMPS: usize = 15;
 
-/// 3D vector with 16-bit integer components.
-pub type Vec3s = [I16; 3];
-/// 3D vector with 32-bit float components.
-pub type Vec3f = [F32; 3];
 /// Edge represented as two vertex indices.
 pub type Edge = [U16; 2];
 
@@ -64,17 +60,7 @@ pub struct LevelHeader {
     /// BSP format version.
     pub version: U32,
     /// Lump entries.
-    pub lumps: [LumpInfo; BSP_LUMPS],
-}
-
-/// Lump entry.
-#[repr(C)]
-#[derive(Debug, Clone, FromBytes, IntoBytes, KnownLayout, Immutable)]
-pub struct LumpInfo {
-    /// Offset from start of file.
-    pub offset: U32,
-    /// Size in bytes.
-    pub size: U32,
+    pub lumps: [Lump; BSP_LUMPS],
 }
 
 /// Plane used for BSP partitioning.
@@ -189,16 +175,6 @@ pub struct Model {
     pub faces_num: U32,
 }
 
-/// Axis-aligned bounding box.
-#[repr(C)]
-#[derive(Debug, Clone, FromBytes, IntoBytes, KnownLayout, Immutable)]
-pub struct BBox<T> {
-    /// Minimum coordinates.
-    pub min: T,
-    /// Maximum coordinates.
-    pub max: T,
-}
-
 pub fn level(bytes: &[u8]) -> ParsingResult<Level<'_>> {
     let (header, _) =
         LevelHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsd header"))?;
@@ -212,42 +188,33 @@ pub fn level(bytes: &[u8]) -> ParsingResult<Level<'_>> {
     }
 
     Ok(Level {
-        entities: lump_ref(bytes, &header.lumps[0])?,
-        planes: lump_ref(bytes, &header.lumps[1])?,
-        textures: miptex_lump(lump_ref::<u8>(bytes, &header.lumps[2])?)?,
-        vertices: lump_ref(bytes, &header.lumps[3])?,
-        visdata: lump_ref(bytes, &header.lumps[4])?,
-        nodes: lump_ref(bytes, &header.lumps[5])?,
-        texture_infos: lump_ref(bytes, &header.lumps[6])?,
-        faces: lump_ref(bytes, &header.lumps[7])?,
-        lighting: lump_ref(bytes, &header.lumps[8])?,
-        clip_nodes: lump_ref(bytes, &header.lumps[9])?,
-        leaves: lump_ref(bytes, &header.lumps[10])?,
-        mark_surfaces: lump_ref(bytes, &header.lumps[11])?,
-        edges: lump_ref(bytes, &header.lumps[12])?,
-        surfedges: lump_ref(bytes, &header.lumps[13])?,
-        models: lump_ref(bytes, &header.lumps[14])?,
+        entities: lump_ref(bytes, &header.lumps[0], "bsp entities")?,
+        planes: lump_ref(bytes, &header.lumps[1], "bsp planes")?,
+        textures: miptex_lump(lump_ref::<u8>(bytes, &header.lumps[2], "bsp textures")?)?,
+        vertices: lump_ref(bytes, &header.lumps[3], "bsp vertices")?,
+        visdata: lump_ref(bytes, &header.lumps[4], "bsp visdata")?,
+        nodes: lump_ref(bytes, &header.lumps[5], "bsp nodes")?,
+        texture_infos: lump_ref(bytes, &header.lumps[6], "bsp texture infos")?,
+        faces: lump_ref(bytes, &header.lumps[7], "bsp faces")?,
+        lighting: lump_ref(bytes, &header.lumps[8], "bsp lighting")?,
+        clip_nodes: lump_ref(bytes, &header.lumps[9], "bsp clip nodes")?,
+        leaves: lump_ref(bytes, &header.lumps[10], "bsp leaves")?,
+        mark_surfaces: lump_ref(bytes, &header.lumps[11], "bsp mark surfaces")?,
+        edges: lump_ref(bytes, &header.lumps[12], "bsp edges")?,
+        surfedges: lump_ref(bytes, &header.lumps[13], "bsp surfedges")?,
+        models: lump_ref(bytes, &header.lumps[14], "bsp models")?,
     })
 }
 
-fn lump_ref<'a, T>(bytes: &'a [u8], lump: &LumpInfo) -> ParsingResult<&'a [T]>
-where
-    T: Immutable + FromBytes,
-{
-    let data = bytes
-        .get(util::to_validate_range(
-            lump.offset.get(),
-            lump.size.get(),
-            "bsp lump",
-        )?)
-        .ok_or(ParsingError::OutOfRange("bsp lump"))?;
-    <[T]>::ref_from_bytes(data).map_err(|_| ParsingError::Invalid("bsp lump"))
-}
-
 fn miptex_lump(bytes: &[u8]) -> ParsingResult<Vec<MipTexture<'_>>> {
-    let offsets = miptex_offsets(bytes)?;
-    let mut textures = Vec::with_capacity(offsets.len());
+    let (count, rest) =
+        U32::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsp miptex header"))?;
+    let count = usize::try_from(count.get())
+        .map_err(|_| ParsingError::NumberOverflow("bsp miptex offsets count"))?;
+    let (offsets, _) = <[U32]>::ref_from_prefix_with_elems(rest, count)
+        .map_err(|_| ParsingError::Invalid("bsp miptex offsets"))?;
 
+    let mut textures = Vec::with_capacity(offsets.len());
     for offset in offsets {
         let offset = usize::try_from(offset.get())
             .map_err(|_| ParsingError::NumberOverflow("bsp miptex offset"))?;
@@ -261,17 +228,6 @@ fn miptex_lump(bytes: &[u8]) -> ParsingResult<Vec<MipTexture<'_>>> {
     Ok(textures)
 }
 
-fn miptex_offsets(bytes: &[u8]) -> ParsingResult<&[U32]> {
-    let (count, rest) =
-        U32::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsp miptex header"))?;
-    let count = usize::try_from(count.get())
-        .map_err(|_| ParsingError::NumberOverflow("bsp miptex offsets count"))?;
-    let (offsets, _) = <[U32]>::ref_from_prefix_with_elems(rest, count)
-        .map_err(|_| ParsingError::Invalid("bsp miptex offsets"))?;
-
-    Ok(offsets)
-}
-
 assert_eq_size!(Plane, [u8; 20]);
 assert_eq_size!(Node, [u8; 24]);
 assert_eq_size!(TextureInfo, [u8; 40]);
@@ -279,8 +235,4 @@ assert_eq_size!(Face, [u8; 20]);
 assert_eq_size!(ClipNode, [u8; 8]);
 assert_eq_size!(Leaf, [u8; 28]);
 assert_eq_size!(Model, [u8; 64]);
-assert_eq_size!(Vec3s, [u8; 6]);
-assert_eq_size!(Vec3f, [u8; 12]);
 assert_eq_size!(Edge, [u8; 4]);
-assert_eq_size!(BBox<Vec3s>, [Vec3s; 2]);
-assert_eq_size!(BBox<Vec3f>, [Vec3f; 2]);

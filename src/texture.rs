@@ -217,7 +217,7 @@ pub fn mip_texture(bytes: &[u8]) -> ParsingResult<MipTexture<'_>> {
         ptr = bytes;
     }
 
-    let (palette, _) = palette(ptr)?;
+    let (palette, _) = palette_ref(ptr)?;
 
     Ok(MipTexture {
         header,
@@ -234,7 +234,7 @@ pub fn picture(bytes: &[u8]) -> ParsingResult<Picture<'_>> {
 
     let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(bytes, size)
         .map_err(|_| ParsingError::Invalid("pic indices"))?;
-    let (palette, _) = palette(bytes)?;
+    let (palette, _) = palette_ref(bytes)?;
 
     Ok(Picture {
         header,
@@ -255,7 +255,7 @@ pub fn font(bytes: &[u8]) -> ParsingResult<Font<'_>> {
 
     let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(bytes, size)
         .map_err(|_| ParsingError::Invalid("font indices"))?;
-    let (palette, _) = palette(bytes)?;
+    let (palette, _) = palette_ref(bytes)?;
 
     Ok(Font {
         header,
@@ -285,7 +285,7 @@ pub fn sprite(bytes: &[u8]) -> ParsingResult<Sprite<'_>> {
         });
     }
 
-    let (palette, bytes) = palette(bytes)?;
+    let (palette, bytes) = palette_ref(bytes)?;
     let frames = frames_ref(bytes, header)?;
 
     Ok(Sprite {
@@ -295,7 +295,7 @@ pub fn sprite(bytes: &[u8]) -> ParsingResult<Sprite<'_>> {
     })
 }
 
-pub fn palette(bytes: &[u8]) -> ParsingResult<(&'_ [Rgb], &'_ [u8])> {
+fn palette_ref(bytes: &[u8]) -> ParsingResult<(&'_ [Rgb], &'_ [u8])> {
     let (size, bytes) =
         U16::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("palette header"))?;
 

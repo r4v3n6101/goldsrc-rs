@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use goldsrc_rs::{
+    common::cstring_bytes,
     texture::{ColorData, font, mip_texture, picture},
     wad::{wad, wad_entry},
 };
@@ -45,7 +46,7 @@ fn extract_wad() {
         println!("File: {:?}", path);
         println!("Entries: {}", wad.entries.len());
         for (idx, entry) in wad.entries.iter().enumerate() {
-            let raw_name = String::from_utf8_lossy(entry.name());
+            let raw_name = String::from_utf8_lossy(cstring_bytes(&entry.name));
             let name = if raw_name.is_empty() {
                 format!("unnamed_{idx}")
             } else {

@@ -6,6 +6,7 @@ use zerocopy::{
 use zerocopy_derive::*;
 
 use crate::{
+    common::{Table, table_ref},
     error::{ParsingError, ParsingResult},
     util,
 };
@@ -53,18 +54,6 @@ pub struct WadEntry {
     pub name: [u8; 16],
 }
 
-impl WadEntry {
-    /// Entry name as bytes without trailing NULs.
-    pub fn name(&self) -> &[u8] {
-        let end = self
-            .name
-            .iter()
-            .position(|&b| b == 0)
-            .unwrap_or(self.name.len());
-        &self.name[..end]
-    }
-}
-
 pub fn wad(bytes: &[u8]) -> ParsingResult<Wad<'_>> {
     let (header, _) =
         WadHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("wad header"))?;
@@ -76,7 +65,14 @@ pub fn wad(bytes: &[u8]) -> ParsingResult<Wad<'_>> {
         });
     }
 
-    let entries = entry_ref(bytes, header)?;
+    let entries = table_ref(
+        bytes,
+        &Table {
+            count: header.entries,
+            offset: header.entry_offset,
+        },
+        "wad entries",
+    )?;
 
     Ok(Wad { header, entries })
 }
@@ -89,20 +85,6 @@ pub fn wad_entry<'a>(bytes: &'a [u8], entry: &WadEntry) -> ParsingResult<&'a [u8
             "wad entry",
         )?)
         .ok_or(ParsingError::OutOfRange("wad entry"))
-}
-
-fn entry_ref<'a>(bytes: &'a [u8], header: &WadHeader) -> ParsingResult<&'a [WadEntry]> {
-    let count = usize::try_from(header.entries.get())
-        .map_err(|_| ParsingError::NumberOverflow("wad entry count"))?;
-    let offset = usize::try_from(header.entry_offset.get())
-        .map_err(|_| ParsingError::NumberOverflow("wad entries offset"))?;
-    let data = bytes
-        .get(offset..)
-        .ok_or(ParsingError::OutOfRange("wad entries"))?;
-    let (entries, _) = <[WadEntry]>::ref_from_prefix_with_elems(data, count)
-        .map_err(|_| ParsingError::Invalid("wad entries"))?;
-
-    Ok(entries)
 }
 
 assert_eq_size!(WadHeader, [u8; 12]);
