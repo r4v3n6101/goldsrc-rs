@@ -1,14 +1,6 @@
 use static_assertions::assert_eq_size;
-use zerocopy::{
-    FromBytes, Immutable,
-    little_endian::{F32, I16, U32},
-};
+use zerocopy::little_endian::{F32, I16, U32};
 use zerocopy_derive::*;
-
-use crate::{
-    error::{ParsingError, ParsingResult},
-    util,
-};
 
 /// 2D vector with 32-bit float components.
 pub type Vec2f = [F32; 2];
@@ -28,6 +20,7 @@ pub struct BBox<T> {
 }
 
 /// Lump entry.
+/// Lump array of data at `offset` and with `size` in bytes.
 #[repr(C)]
 #[derive(Debug, Clone, FromBytes, IntoBytes, KnownLayout, Immutable)]
 pub struct Lump {
@@ -38,6 +31,7 @@ pub struct Lump {
 }
 
 /// Table entry.
+/// Table is array of data at `offset` with length equals to `count` (i.e. `count` is in elements).
 #[repr(C)]
 #[derive(Debug, Clone, FromBytes, IntoBytes, KnownLayout, Immutable)]
 pub struct Table {
@@ -45,48 +39,6 @@ pub struct Table {
     pub count: U32,
     /// Offset to entries.
     pub offset: U32,
-}
-
-pub fn lump_ref<'a, T>(bytes: &'a [u8], lump: &Lump, label: &'static str) -> ParsingResult<&'a [T]>
-where
-    T: Immutable + FromBytes,
-{
-    if lump.size.get() == 0 {
-        return Ok(&[]);
-    }
-
-    let data = bytes
-        .get(util::to_validate_range(
-            lump.offset.get(),
-            lump.size.get(),
-            label,
-        )?)
-        .ok_or(ParsingError::OutOfRange(label))?;
-
-    <[T]>::ref_from_bytes(data).map_err(|_| ParsingError::Invalid(label))
-}
-
-pub fn table_ref<'a, T>(
-    bytes: &'a [u8],
-    table: &Table,
-    label: &'static str,
-) -> ParsingResult<&'a [T]>
-where
-    T: Immutable + FromBytes,
-{
-    if table.count.get() == 0 {
-        return Ok(&[]);
-    }
-
-    let count =
-        usize::try_from(table.count.get()).map_err(|_| ParsingError::NumberOverflow(label))?;
-    let offset =
-        usize::try_from(table.offset.get()).map_err(|_| ParsingError::NumberOverflow(label))?;
-    let data = bytes.get(offset..).ok_or(ParsingError::OutOfRange(label))?;
-    let (entries, _) =
-        <[T]>::ref_from_prefix_with_elems(data, count).map_err(|_| ParsingError::Invalid(label))?;
-
-    Ok(entries)
 }
 
 pub fn cstring_bytes(bytes: &[u8]) -> &[u8] {
@@ -98,3 +50,5 @@ assert_eq_size!(Vec3s, [u8; 6]);
 assert_eq_size!(Vec3f, [u8; 12]);
 assert_eq_size!(BBox<Vec3s>, [Vec3s; 2]);
 assert_eq_size!(BBox<Vec3f>, [Vec3f; 2]);
+assert_eq_size!(Lump, [u8; 8]);
+assert_eq_size!(Table, [u8; 8]);

@@ -6,10 +6,10 @@ use zerocopy::{
 use zerocopy_derive::*;
 
 use crate::{
-    common::{BBox, Table, Vec3f, table_ref},
+    common::{BBox, Table, Vec3f},
     error::{ParsingError, ParsingResult},
     texture::{ColorData, PaletteIndex, Rgb},
-    util,
+    util::{pixel_size, table_ref},
 };
 
 /// MDL magic (GoldSrc).
@@ -452,7 +452,7 @@ pub fn texture_data<'a>(bytes: &'a [u8], texture: &Texture) -> ParsingResult<Col
         .get(offset..)
         .ok_or(ParsingError::OutOfRange("mdl texture"))?;
 
-    let size = util::pixel_size(texture.width.get(), texture.height.get(), "mdl texture")?;
+    let size = pixel_size(texture.width.get(), texture.height.get(), "mdl texture")?;
     let (indices, bytes) = <[PaletteIndex]>::ref_from_prefix_with_elems(bytes, size)
         .map_err(|_| ParsingError::Invalid("mdl texture indices"))?;
 

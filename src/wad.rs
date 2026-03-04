@@ -6,9 +6,9 @@ use zerocopy::{
 use zerocopy_derive::*;
 
 use crate::{
-    common::{Table, table_ref},
+    common::Table,
     error::{ParsingError, ParsingResult},
-    util,
+    util::{table_ref, to_validate_range},
 };
 
 /// WAD3 magic (Half-Life).
@@ -79,7 +79,7 @@ pub fn wad(bytes: &[u8]) -> ParsingResult<Wad<'_>> {
 
 pub fn wad_entry<'a>(bytes: &'a [u8], entry: &WadEntry) -> ParsingResult<&'a [u8]> {
     bytes
-        .get(util::to_validate_range(
+        .get(to_validate_range(
             entry.offset.get(),
             entry.disk_size.get(),
             "wad entry",

@@ -6,9 +6,10 @@ use zerocopy::{
 use zerocopy_derive::*;
 
 use crate::{
-    common::{BBox, Lump, Vec3f, Vec3s, lump_ref},
+    common::{BBox, Lump, Vec3f, Vec3s},
     error::{ParsingError, ParsingResult},
-    texture::{self, MipTexture},
+    texture::{MipTexture, mip_texture},
+    util::lump_ref,
 };
 
 /// BSP version (GoldSrc/Quake 1 format).
@@ -177,7 +178,7 @@ pub struct Model {
 
 pub fn level(bytes: &[u8]) -> ParsingResult<Level<'_>> {
     let (header, _) =
-        LevelHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsd header"))?;
+        LevelHeader::ref_from_prefix(bytes).map_err(|_| ParsingError::OutOfRange("bsp header"))?;
 
     let version = header.version.get();
     if version != BSP_VERSION {
@@ -222,7 +223,7 @@ fn miptex_lump(bytes: &[u8]) -> ParsingResult<Vec<MipTexture<'_>>> {
             .get(offset..)
             .ok_or(ParsingError::OutOfRange("bsp miptex"))?;
 
-        textures.push(texture::mip_texture(slice)?);
+        textures.push(mip_texture(slice)?);
     }
 
     Ok(textures)
