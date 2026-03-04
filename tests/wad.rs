@@ -1,35 +1,12 @@
-use std::path::Path;
-
 use goldsrc_rs::{
     common::cstring_bytes,
-    texture::{ColorData, font, mip_texture, picture},
+    texture::{font, mip_texture, picture},
     wad::{wad, wad_entry},
 };
 
-fn save_img<const N: usize>(
-    out_dir: &Path,
-    name: &str,
-    width: u32,
-    height: u32,
-    data: &ColorData<'_, N>,
-) {
-    let mut rgba = Vec::with_capacity(width as usize * height as usize * 4);
-    for &i in data.indices[0].iter() {
-        let [r, g, b] = data
-            .palette
-            .get(i as usize)
-            .copied()
-            .unwrap_or([0u8, 0u8, 0u8]);
-        if r == 255 || g == 255 || b == 255 {
-            rgba.extend_from_slice(&[0u8, 0u8, 0u8, 0u8]);
-        } else {
-            rgba.extend_from_slice(&[r, g, b, 255u8]);
-        }
-    }
+use std::path::Path;
 
-    let imgbuf = image::RgbaImage::from_vec(width, height, rgba).unwrap();
-    imgbuf.save(out_dir.join(format!("{name}.png"))).unwrap();
-}
+mod common;
 
 #[test]
 fn extract_wad() {
@@ -72,7 +49,7 @@ fn extract_wad() {
             match entry.ty {
                 0x46 => {
                     let font = font(bytes).unwrap();
-                    save_img(
+                    common::save_img(
                         out_dir,
                         &format!("{name}_font"),
                         font.header.width.get(),
@@ -86,7 +63,7 @@ fn extract_wad() {
                         eprintln!("  missing miptex data: {}", name);
                         continue;
                     };
-                    save_img(
+                    common::save_img(
                         out_dir,
                         &format!("{name}_mip0"),
                         miptex.header.width.get(),
@@ -96,7 +73,7 @@ fn extract_wad() {
                 }
                 0x42 | 0x40 => {
                     if let Ok(pic) = picture(bytes) {
-                        save_img(
+                        common::save_img(
                             out_dir,
                             &format!("{name}_pic"),
                             pic.header.width.get(),
@@ -105,7 +82,7 @@ fn extract_wad() {
                         );
                     } else if let Ok(miptex) = mip_texture(bytes) {
                         if let Some(data) = miptex.data {
-                            save_img(
+                            common::save_img(
                                 out_dir,
                                 &format!("{name}_mip0"),
                                 miptex.header.width.get(),
